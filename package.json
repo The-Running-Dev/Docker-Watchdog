@@ -1,0 +1,24 @@
+{
+  "name": "docker-webhooks",
+  "version": "1.0.0",
+  "description": "A lightweight webhook listener using Bun and TypeScript",
+  "main": "index.ts",
+  "scripts": {
+    "prestart:dev": "set NODE_ENV=development && ts-node ./scripts/set-env.ts",
+    "prestart:prod": "set NODE_ENV=production && tsc ./scripts/set-env.ts && node ./scripts/set-env.js",
+    "dev": "npx ts-node src/Bot.ts",
+    "start": "node Bot.js",
+    "test": "echo \"Error: No Test Specified\" && exit 1",
+    "build": "tsc -p ."
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.13.1",
+    "typescript": "^5.2.0",
+    "dotenv": "^16.4.7"
+  },
+  "type": "commonjs"
+}

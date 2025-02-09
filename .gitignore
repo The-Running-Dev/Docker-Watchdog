@@ -1,0 +1,12 @@
+
+.idea/
+
+node_modules/
+
+build-local.ps1
+
+scripts/set-env.js
+
+.env
+
+src/environments/environment.ts
