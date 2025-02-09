@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - src/**
+      - src/*/**
       - .github/workflows/build-container.yml
 
 permissions:
