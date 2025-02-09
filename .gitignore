@@ -10,3 +10,5 @@ scripts/set-env.js
 .env
 
 src/environments/environment.ts
+
+.secrets
