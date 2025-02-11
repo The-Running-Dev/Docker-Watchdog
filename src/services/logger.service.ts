@@ -15,8 +15,9 @@ export class LoggerService {
                 format.timestamp(),
                 format.printf((info: TransformableInfo) => {
                     const message = `${info.timestamp} [${info.level}]: ${(info.message as string).replace(/'/g, '')}`;
-                    const meta = info.meta ? ` ${JSON.stringify(info.meta)}` : '';
-                    return message + meta;
+                    const data = info.meta ? ` ${JSON.stringify(info.meta)}` : '';
+                    
+                    return message + data;
                 })
             ),
             transports: [
@@ -26,19 +27,19 @@ export class LoggerService {
         });
     }
 
-    info(message: string, meta?: object) {
-        this.logger.info(message, { meta });
+    info(message: string, data?: object) {
+        this.logger.info(message, { meta: data });
     }
 
-    error(message: string, meta?: object) {
-        this.logger.error(message, { meta });
+    error(message: string, data?: object) {
+        this.logger.error(message, { meta: data });
     }
 
-    warn(message: string, meta?: object) {
-        this.logger.warn(message, { meta });
+    warn(message: string, data?: object) {
+        this.logger.warn(message, { meta: data });
     }
 
-    debug(message: string, meta?: object) {
-        this.logger.debug(message, { meta });
+    debug(message: string, data?: object) {
+        this.logger.debug(message, { meta: data });
     }
 }

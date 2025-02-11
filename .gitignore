@@ -14,3 +14,5 @@ src/environments/environment.ts
 .secrets
 
 Combined.log
+
+coverage/
