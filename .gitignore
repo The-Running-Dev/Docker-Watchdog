@@ -12,3 +12,5 @@ scripts/set-env.js
 src/environments/environment.ts
 
 .secrets
+
+Combined.log

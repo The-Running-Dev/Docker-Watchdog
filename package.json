@@ -6,19 +6,25 @@
   "scripts": {
     "prestart:dev": "set NODE_ENV=development && ts-node ./scripts/set-env.ts",
     "prestart:prod": "set NODE_ENV=production && tsc ./scripts/set-env.ts && node ./scripts/set-env.js",
-    "dev": "npx ts-node src/Bot.ts",
+    "dev": "nodemon --watch \"src/**/*.ts\" --exec \"./node_modules/.bin/ts-node\" src/index.ts",
     "start": "node Bot.js",
     "test": "echo \"Error: No Test Specified\" && exit 1",
     "build": "tsc -p ."
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "inversify": "^6.2.2",
+    "joi": "^17.13.3",
+    "reflect-metadata": "^0.2.2",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
     "@types/node": "^22.13.1",
-    "typescript": "^5.2.0",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "nodemon": "^3.1.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.2.0"
   },
   "type": "commonjs"
 }
