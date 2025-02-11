@@ -87,14 +87,7 @@ describe('DockerService', () => {
         loggerService = new LoggerService();
         dockerService = new DockerService(loggerService);
     });
-
-    /*
-    beforeEach(() => {
-        loggerService = new LoggerService();
-        dockerService = new DockerService(loggerService);
-        jest.clearAllMocks();
-    });
-    */
+    
 
     afterEach(() => {
         jest.clearAllMocks();

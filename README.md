@@ -137,6 +137,7 @@ To test GitHub Actions workflows locally, you can use a tool called `act`. This 
 
 ### Tests
 
+- Fix failing tests in the `DockerService` class.
 - Implement unit tests for all services and controllers.
 - Add integration tests for API endpoints.
 
