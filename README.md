@@ -1,8 +1,6 @@
 # Docker-WebHooks
 
-# Docker Service Application
-
-This project is a Docker Service application built with TypeScript, Express,
+This project is a Node API application built with TypeScript, Express,
 and InversifyJS. It provides an API to manage Docker images and containers,
 including fetching running images, inspecting image details, and running
 Docker Compose commands.
@@ -19,22 +17,28 @@ Docker Compose commands.
 ## Installation
 
 1. Clone the repository:
-    ```sh
+    ```powershell
     git clone https://github.com/The-Running-Dev/Docker-Webhooks.git
-    cd docker-service-app
+    cd Docker-Webhooks
     ```
 
 2. Install dependencies:
-    ```sh
+    ```powershell
     npm install
     ```
 
 3. Ensure Docker is installed and running on your machine.
 
+4. Create a `.env` file in the root directory of the project and add the following environment variables:
+    ```powershell
+    PORT=4000
+    APIKey=your_api_key_here
+    ```
+
 ## Usage
 
 1. Start the application:
-    ```sh
+    ```powershell
     npm start
     ```
 
@@ -94,9 +98,13 @@ A PowerShell script to send a POST request to the `/webhook` endpoint.
     .\scripts\post-webhook.ps1
     ```
 
+### Using the `.env` File in PowerShell Scripts
+
+The PowerShell scripts are configured to read environment variables from the `.env` file located in the root directory of the project. Ensure that the `.env` file contains the API key necessary before running the scripts.
+
 ## Workflows
 
-This project uses GitHub Actions for CI/CD workflows. To run these workflows locally, you can use the `act` tool.
+This project uses GitHub Actions for CI/CD workflow. To run the workflow locally, you can use the `act` tool.
 
 ## Running Workflows Locally with `act`
 

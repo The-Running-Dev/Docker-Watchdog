@@ -7,7 +7,7 @@
     "prestart:dev": "set NODE_ENV=development && ts-node ./scripts/set-env.ts",
     "prestart:prod": "set NODE_ENV=production && tsc ./scripts/set-env.ts && node ./scripts/set-env.js",
     "dev": "nodemon --watch \"src/**/*.ts\" --exec \"./node_modules/.bin/ts-node\" src/index.ts",
-    "start": "node Bot.js",
+    "start": "node index.js",
     "test": "jest",
     "build": "tsc -p ."
   },

@@ -7,6 +7,11 @@ import container from './inversify.config';
 import TYPES from './types';
 import { DockerService, LoggerService } from './services';
 import { WebhookRequest, WebhookRequestSchema } from './models/webhook-request.model';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables from .env file in the root directory
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
 const PORT: number = Number(process.env.PORT) || 4000;
@@ -15,13 +20,29 @@ const logger = container.get<LoggerService>(TYPES.LoggerService);
 
 app.use(express.json());
 
+const APIKey = process.env.APIKey;
+
+const apiKeyAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const apiKey = req.headers['x-api-key'];
+
+    if (apiKey && apiKey === APIKey) {
+        next();
+    } else {
+        console.log(`Provided: ${apiKey}, Needed: ${APIKey}`);
+
+        res.status(403).json({ message: "Forbidden: Invalid API Key" });
+    }
+};
+
+app.use(apiKeyAuth);
+
 app.get('/', (_req: express.Request, response: express.Response): void => {
     dockerService.getImages((error, images) => {
         if (error) {
             return;
         }
 
-        response.json({ runningImages: images });
+        response.json({ images: images });
     });
 });
 

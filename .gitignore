@@ -16,3 +16,5 @@ src/environments/environment.ts
 Combined.log
 
 coverage/
+
+deploy/
