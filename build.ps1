@@ -10,11 +10,15 @@ $ErrorActionPreference = 'Stop'
 # Include the environment-functions
 . (Join-Path $PSScriptRoot 'scripts\environment-functions.ps1')
 
-$envFile = Join-Path $PSScriptRoot '.env' -Resolve
-$envBuildFile = Join-Path $PSScriptRoot '.env.build' -Resolve
+$envFile = Join-Path $PSScriptRoot '.env'
+$envBuildFile = Join-Path $PSScriptRoot '.env.build'
 
 Write-Host "envFile: $envFile"
 Write-Host "envBuildFile: $envBuildFile"
+
+Get-Environment `
+    -envFilePath $(Join-Path $PSScriptRoot '.env') `
+    -envBuildFilePath $(Join-Path $PSScriptRoot '.env.build')
 
 # Debugging: Check if the files exist
 if (Test-Path $envFile) {
@@ -28,10 +32,6 @@ if (Test-Path $envBuildFile) {
 } else {
     Write-Host "File Not Found: $envBuildFile"
 }
-
-Get-Environment `
-    -envFilePath $(Join-Path $PSScriptRoot '.env') `
-    -envBuildFilePath $(Join-Path $PSScriptRoot '.env.build')
 
 # Iterate over all environment variables and print their names and values
 Write-Host "Environment Variables:"
