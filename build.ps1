@@ -10,8 +10,8 @@ $ErrorActionPreference = 'Stop'
 # Include the environment-functions
 . (Join-Path $PSScriptRoot 'scripts\environment-functions.ps1')
 
-$envFile = Join-Path . '.env' -Resolve
-$envBuildFile = Join-Path . '.env.build' -Resolve
+$envFile = Join-Path $PSScriptRoot '.env' -Resolve
+$envBuildFile = Join-Path $PSScriptRoot '.env.build' -Resolve
 
 Write-Host "envFile: $envFile"
 Write-Host "envBuildFile: $envBuildFile"
