@@ -1,0 +1,20 @@
+export const Messages = {
+    errorFetchingImages: 'Error Fetching Images: ',
+    errorFetchingImageDetails: 'Error Fetching Image Details: ',
+    errorFetchingRunningImageDetails: 'Error Fetching Running Image Details: ',
+    errorFetchingConfigFileForImage: 'Error Fetching Config File For Image: ',
+    errorFetchingComposeConfigFiles: 'Error Fetching Compose Config Files: ',
+    errorCheckingIfImageIsRunningWithDockerRun: 'Error Checking if Image is Running with Docker Run: ',
+    errorExecutingDockerCompose: 'Error Executing Docker-Compose: ',
+    dockerNotRunning: 'Docker Not Running: ',
+    fetchedImages: 'Fetched Images: ',
+    runCommand: 'Run Command: ',
+    images: 'Images:',
+    imageDetails: 'Image Details: ',
+    dockerComposeExecuted: 'Docker-Compose Executed for Image: ',
+    dockerComposeExecutedSuccessfully: 'Docker-Compose Executed Successfully',
+    imageNotRunning: (imageTag: string) => `Image: ${imageTag}...Not Running`,
+    imageHasComposeFile: (imageTag: string, configFile: string) => `Image ${imageTag} Has a Compose File: ${configFile}`,
+    imageRunningWithDockerRun: (imageTag: string) => `Image ${imageTag} is Running with Docker Run.`,
+    imageNotRunningStatus: (imageTag: string) => `Image ${imageTag} is Not Running`
+};

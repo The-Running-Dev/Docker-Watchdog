@@ -1,0 +1,10 @@
+{
+    "event": "webhook",
+    "data": {
+        "tag": "castopod"
+    },
+    "parameters": {
+        "hardReset": "false"
+    },
+    "isTest": true
+}

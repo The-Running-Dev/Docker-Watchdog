@@ -1,7 +1,43 @@
-#!/usr/bin/env pwsh
+param(
+    [bool]$pushToGitHub = $true
+)
+
+Clear-Host
 
 # Exit immediately if a command exits with a non-zero status.
 $ErrorActionPreference = 'Stop'
+
+# Include the environment-functions
+. (Join-Path $PSScriptRoot 'scripts\environment-functions.ps1')
+
+$envFile = Join-Path . '.env' -Resolve
+$envBuildFile = Join-Path . '.env.build' -Resolve
+
+Write-Host "envFile: $envFile"
+Write-Host "envBuildFile: $envBuildFile"
+
+# Debugging: Check if the files exist
+if (Test-Path $envFile) {
+    Write-Host "File Exists: $envFile"
+} else {
+    Write-Host "File Not Found: $envFile"
+}
+
+if (Test-Path $envBuildFile) {
+    Write-Host "File Exists: $envBuildFile"
+} else {
+    Write-Host "File Not Found: $envBuildFile"
+}
+
+Get-Environment `
+    -envFilePath $(Join-Path $PSScriptRoot '.env') `
+    -envBuildFilePath $(Join-Path $PSScriptRoot '.env.build')
+
+# Iterate over all environment variables and print their names and values
+Write-Host "Environment Variables:"
+Get-ChildItem Env: | ForEach-Object {
+    Write-Host "$($_.Name) = $($_.Value)"
+}
 
 # Check if the token is provided
 if (-not $env:gitHubPackagesToken) {
@@ -10,66 +46,59 @@ if (-not $env:gitHubPackagesToken) {
     exit 1
 }
 
-$deployDir = './deploy'
-$imageTag = 'docker-webhooks'
-$ghcrImageTag = "ghcr.io/the-running-dev/$($imageTag):latest"
-$gitHubUsername = 'the-running-dev'
+write-host "deployDir: $($env:deployDir)"
 
-# Define an array of files to copy
-$filesToCopy = @("package.json", ".env")
-
-# Write secrets to .env file
-@"
-DiscordBotToken=$($env:discordBotToken)
-DiscordWebhookUrl=$($env:discordWebhookUrl)
-"@ | Out-File -Encoding utf8 .env
+# Define a hashtable of files to copy with destination as key and array of files as values
+$filesToCopy = @{
+    $env:deployDir = @("package.json", ".env", "pnpm-lock.yaml")
+    (Join-Path $env:deployDir 'docker') = (Get-ChildItem -Path './src/docker' -Filter '*.ps1' | ForEach-Object { $_.FullName })
+}
 
 # Create the deploy directory
 Write-Host "Create The Deploy Directory..."
-New-Item -ItemType Directory -Force -Path $deployDir | Out-Null
+New-Item -ItemType Directory -Force -Path $env:deployDir | Out-Null
 
 # Build the app
 Write-Host "Building the Application..."
 try {
     # Install dependencies
-    npm install
+    pnpm install
     
-    # Create .env for Production
-    Write-Host "Create .env for Production..."
-    & npm run prestart:prod
-    
-    # Build the app
     Write-Host "Building the Application..."
-    & npm run build
+    & pnpm run prod
 } catch {
-    Write-Error "Node.js Build Failed."
+    Write-Error "Node.js Build Failed...."
 
     exit 1
 }
 
 # Copy files to the deploy directory
-foreach ($file in $filesToCopy) {
-    Write-Host "Copying $file to the Deploy Directory..."
-    
-    Copy-Item -Recurse -Force $file -Destination $deployDir | Out-Null
+foreach ($destination in $filesToCopy.Keys) {
+    foreach ($file in $filesToCopy[$destination]) {
+        Write-Host "Copying $((Get-Item $file).Name) to the $destination..."
+        
+        Copy-Item -Recurse -Force $file -Destination $destination | Out-Null
+    }
 }
 
 # Build the Docker image
 Write-Host "Building the Docker Image..."
-docker build -t $imageTag .
+docker build -t $env:imageTag .
 
 # Tag the Docker image for GitHub Container Registry
 Write-Host "Tagging the Docker Image for GitHub Container Registry..."
-docker tag $imageTag $ghcrImageTag
+docker tag $env:imageTag $env:ghcrImageTag
 
-# Authenticate with GitHub Container Registry
-Write-Host "Authenticating with GitHub Container Registry..."
-$env:gitHubPackagesToken | docker login ghcr.io -u $gitHubUsername --password-stdin
+if ($pushToGitHub) {
+    # Authenticate with GitHub Container Registry
+    Write-Host "Authenticating with GitHub Container Registry..."
+    $env:gitHubPackagesToken | docker login ghcr.io -u $env:gitHubUsername --password-stdin
 
-# Push the Docker image to GitHub Container Registry
-Write-Host "Pushing the Docker Image to GitHub Container Registry..."
-docker push $ghcrImageTag
+    # Push the Docker image to GitHub Container Registry
+    Write-Host "Pushing the Docker Image to GitHub Container Registry..."
+    docker push $env:ghcrImageTag
+}
 
 # Clean up the deploy directory
 Write-Host "Cleaning up the Deploy Directory..."
-Remove-Item -Recurse -Force $deployDir | Out-Null
+Remove-Item -Recurse -Force $env:deployDir | Out-Null

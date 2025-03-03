@@ -2,13 +2,19 @@
 
 import 'reflect-metadata';
 import { Container } from 'inversify';
-import { DockerService, LoggerService } from './services';
-import TYPES from './types'
+import TYPES from './types';
+import {
+    DockerService,
+    ErrorHandlingService,
+    LoggerService,
+    ShellExecuteService
+} from './services';
 
 const container = new Container();
 
-// Make sure you bind LoggerService
 container.bind<LoggerService>(TYPES.LoggerService).to(LoggerService);
 container.bind<DockerService>(TYPES.DockerService).to(DockerService);
+container.bind<ErrorHandlingService>(TYPES.ErrorHandlingService).to(ErrorHandlingService);
+container.bind<ShellExecuteService>(TYPES.ShellExecuteService).to(ShellExecuteService);
 
 export default container;

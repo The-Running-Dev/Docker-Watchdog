@@ -1,0 +1,27 @@
+x-defaultEnvironment: &defaultEnvironment
+  PUID: 1000
+  PGID: 100
+  UMASK: 002
+  TZ: Etc/UTC
+
+x-commonKeys: &commonOptions
+  restart: unless-stopped
+  stdin_open: true
+  tty: true
+
+x-dnsServers: &dnsServers
+  dns:
+    - 45.90.28.29
+    - 45.90.30.29
+
+services:
+  docker-webhooks:
+    container_name: docker-webhooks
+    image: docker-webhooks:latest
+    environment:
+      <<: *defaultEnvironment
+    ports:
+      - 4000:4000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    <<: [*dnsServers, *commonOptions]

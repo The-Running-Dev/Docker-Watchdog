@@ -1,32 +1,39 @@
 {
   "name": "docker-webhooks",
   "version": "1.0.0",
-  "description": "A lightweight webhook listener using Bun and TypeScript",
+  "description": "A lightweight webhook listener using Express and TypeScript",
   "main": "index.ts",
   "scripts": {
-    "prestart:dev": "set NODE_ENV=development && ts-node ./scripts/set-env.ts",
-    "prestart:prod": "set NODE_ENV=production && tsc ./scripts/set-env.ts && node ./scripts/set-env.js",
-    "dev": "nodemon --watch \"src/**/*.ts\" --exec \"./node_modules/.bin/ts-node\" src/index.ts",
+    "predev": "set NODE_ENV=development && ts-node ./scripts/set-environment.ts",
+    "preprod": "set NODE_ENV=production && tsc ./scripts/set-environment.ts && node ./scripts/set-environment.js",
+    "dev": "if \"%OS%\" == \"Windows_NT\" (cls && ts-node-dev --clear src/index.ts) else (clear && ts-node-dev --clear src/index.ts)",
+    "prod": "tsc -p .",
     "start": "node index.js",
     "test": "jest",
-    "build": "tsc -p ."
+    "lint": "eslint ."
   },
   "dependencies": {
+    "axios": "^1.8.1",
     "express": "^4.21.2",
     "inversify": "^6.2.2",
     "joi": "^17.13.3",
+    "keypress": "^0.2.1",
+    "logform": "^2.7.0",
     "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
     "winston": "^3.17.0"
   },
   "devDependencies": {
+    "@jest/globals": "^29.5.0",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
+    "@types/keypress.js": "^2.0.30",
     "@types/node": "^22.13.1",
     "dotenv": "^16.4.7",
     "jest": "^29.7.0",
-    "nodemon": "^3.1.9",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
     "typescript": "^5.2.0"
   },
   "type": "commonjs"

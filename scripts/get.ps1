@@ -1,28 +1,20 @@
-& clear
+Clear-Host
 
-# Load the .env file
-$envFilePath = Join-Path (Split-Path -Parent $PSScriptRoot) '.env'
+# Include and execute the set-environment.ps1 script
+. (Join-Path $PSScriptRoot 'set-environment.ps1')
 
-if (Test-Path $envFilePath) {
-    Get-Content $envFilePath | ForEach-Object {
-        if ($_ -match "^(.*?)=(.*)$") {
-            [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
-        }
-    }
+if (-not $env:BaseUrl -or -not $env:APIKey) {
+    Write-Output "Error: The BaseUrl or APIKey environment variables are not set."
+    
+    exit 1
 }
-
-# Define the URL of the webhook
-$webhookUrl = "http://localhost:4000"
-
-# Get the API key from the environment variables
-$apiKey = [System.Environment]::GetEnvironmentVariable("APIKey")
 
 # Send the GET request with the API key in the headers
 $response = Invoke-RestMethod `
-    -Uri $webhookUrl `
+    -Uri $env:BaseUrl `
     -Method Get `
     -ContentType "application/json" `
-    -Headers @{ "x-api-key" = $apiKey }
+    -Headers @{ "x-api-key" = $env:APIKey }
 
 # Output the response
 Write-Output $response

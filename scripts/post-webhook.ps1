@@ -1,29 +1,20 @@
-& clear
+Clear-Host
 
-# Load the .env file
-$envFilePath = Join-Path (Split-Path -Parent $PSScriptRoot) '.env'
+# Include and execute the set-environment.ps1 script
+. (Join-Path $PSScriptRoot 'set-environment.ps1')
 
-if (Test-Path $envFilePath) {
-    Get-Content $envFilePath | ForEach-Object {
-        if ($_ -match "^(.*?)=(.*)$") {
-            [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
-        }
-    }
+if (-not $env:BaseUrl -or -not $env:APIKey) {
+    Write-Output "Error: The BaseUrl or APIKey environment variables are not set."
+    
+    exit 1
 }
 
-# Define the URL of the webhook
-$webhookUrl = "http://localhost:4000/webhook"
+# Define the URL of the webhook using the BaseUrl from environment variables
+$webhookUrl = "$($env:BaseUrl)/webhook"
 
-# Get the API key from the environment variables
-$apiKey = [System.Environment]::GetEnvironmentVariable("APIKey")
-
-# Define the payload to send in the POST request
-$payload = @{
-    event = "webhook"
-    data = @{
-        imageTag = "barstrad-ui"
-    }
-}
+# Read the payload from webhook-sample.json
+$payloadFilePath = Join-Path (Split-Path -Parent $PSScriptRoot) '.\data\webhook-sample.json'
+$payload = Get-Content -Raw -Path $payloadFilePath | ConvertFrom-Json
 
 # Convert the payload to JSON
 $jsonPayload = $payload | ConvertTo-Json
@@ -34,7 +25,7 @@ $response = Invoke-RestMethod `
     -Method Post `
     -Body $jsonPayload `
     -ContentType 'application/json' `
-    -Headers @{ "x-api-key" = $apiKey }
+    -Headers @{ "x-api-key" = $env:apiKey }
 
 # Output the response
 Write-Output $response

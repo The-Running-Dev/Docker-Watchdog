@@ -1,20 +1,13 @@
 
 .idea/
-
+coverage/
 node_modules/
-
-build-local.ps1
-
-scripts/set-env.js
+deploy/
 
 .env
-
-src/environments/environment.ts
-
+.env.build
 .secrets
-
 Combined.log
 
-coverage/
-
-deploy/
+scripts/set-environment.js
+src/environments/environment.ts

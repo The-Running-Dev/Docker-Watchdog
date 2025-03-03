@@ -2,51 +2,31 @@
 
 import 'reflect-metadata';
 import express from 'express';
-import process from 'process';
 import container from './inversify.config';
 import TYPES from './types';
 import { DockerService, LoggerService } from './services';
 import { WebhookRequest, WebhookRequestSchema } from './models/webhook-request.model';
-import dotenv from 'dotenv';
-import path from 'path';
-
-// Load environment variables from .env file in the root directory
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+import { apiKeyAuth, PromptUtils } from './utils';
+import { environment } from './environments/environment';
 
 const app = express();
-const PORT: number = Number(process.env.PORT) || 4000;
 const dockerService = container.get<DockerService>(TYPES.DockerService);
 const logger = container.get<LoggerService>(TYPES.LoggerService);
 
 app.use(express.json());
+app.use(apiKeyAuth(environment.apiKey));
 
-const APIKey = process.env.APIKey;
-
-const apiKeyAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const apiKey = req.headers['x-api-key'];
-
-    if (apiKey && apiKey === APIKey) {
-        next();
-    } else {
-        console.log(`Provided: ${apiKey}, Needed: ${APIKey}`);
-
-        res.status(403).json({ message: "Forbidden: Invalid API Key" });
-    }
-};
-
-app.use(apiKeyAuth);
-
-app.get('/', (_req: express.Request, response: express.Response): void => {
-    dockerService.getImages((error, images) => {
-        if (error) {
-            return;
-        }
+app.get('/', async (_req: express.Request, response: express.Response): Promise<void> => {
+    try {
+        const images = await dockerService.getImages();
 
         response.json({ images: images });
-    });
+    } catch (error: any) {
+        response.status(500).json({ message: "Error Fetching Images", error: error.message });
+    }
 });
 
-app.post('/webhook', (request: express.Request, response: express.Response): void => {
+app.post('/webhook', async (request: express.Request, response: express.Response): Promise<void> => {
     logger.info('Webhook Posted:', request.body);
 
     const { error } = WebhookRequestSchema.validate(request.body);
@@ -61,23 +41,41 @@ app.post('/webhook', (request: express.Request, response: express.Response): voi
 
     const webhookRequest: WebhookRequest = request.body;
 
-    dockerService.runDockerComposeUp(webhookRequest.data.imageTag, (error, stdout, stderr) => {
-        if (error) {
-            response.status(500).json({ message: "Error Executing Docker-Compose", error: error.message });
-            
-            return;
-        }
+    try {
+        if (webhookRequest.isTest) {
+            response.json({
+                request: webhookRequest,
+                response: {
+                    success: false,
+                    message: `isTest: ${webhookRequest.isTest}`,
+                    image: webhookRequest.data.tag
+                }
+            });
+        } else {
+            const { success, message, image } = await dockerService.restartComposeImage(webhookRequest);
 
-        if (stderr) {
-            logger.error(`Error: ${stderr}`);
+            response.json({
+                request: webhookRequest,
+                response: {
+                    success: success,
+                    message: message,
+                    image: image
+                }
+            });
         }
-
-        response.json({ message: "Docker-Compose Executed Successfully", output: stdout });
-    });
+    } catch (error: any) {
+        response.status(500).json({ message: "Error Executing Docker-Compose", error: error.message });
+    }
 });
 
-app.listen(PORT, () => {
-    logger.info(`Webhook Listener Running on Port: ${PORT}`);
+app.listen(environment.port, async () => {
+    logger.info(`Docker-Webhooks Listener Running on Port: ${environment.port}`);
+
+    await dockerService.initialize();
+
+    if (environment.runInteractive) {
+        await PromptUtils.promptUserForMethod(dockerService);
+    }
 }).on("error", (err) => {
     logger.error('Failed to Start:', err);
 });

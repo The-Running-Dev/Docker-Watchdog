@@ -13,7 +13,7 @@ permissions:
   packages: write
 
 jobs:
-  Build-and-Push-Bot:
+  Build-and-Push:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/the-running-dev/barstrad-agent
