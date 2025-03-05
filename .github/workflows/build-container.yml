@@ -45,4 +45,4 @@ jobs:
       - name: Build and Push
         run: pwsh ./build.ps1
         env:
-          gitHubPackagesToken: ${{ secrets.GITHUBPACKAGESTOKEN }}
+          GitHubPackagesToken: ${{ secrets.GITHUBPACKAGESTOKEN }}
