@@ -1,25 +1,16 @@
-function Get-Environment {
-    param (
-        [Parameter(Mandatory)][string]$envFilePath,
-        [Parameter(Mandatory)][string]$envBuildFilePath
-    )
-
-    Read-EnvironmentFile $envFilePath
-    Read-EnvironmentFile $envBuildFilePath
-}
-
-function Read-EnvironmentFile {
+function Set-Environment {
     param (
         [Parameter(Mandatory)][string]$envFilePath
     )
 
-    if ([System.IO.File]::Exists($envFilePath)) {
+    if (Test-Path $envFilePath) {
         Get-Content $envFilePath | ForEach-Object {
             if ($_ -match "^(.*?)=(.*)$") {
-                Write-Host "Key: $($matches[1]), Value: $($matches[2])"
-                Set-Item -Path "env:$($matches[1])" -Value $matches[2]
+                $key = $matches[1];
+                $value = $matches[2]
+                #Write-Host "Key: $key, Value: $value"
             
-                #[System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
+                [System.Environment]::SetEnvironmentVariable($key, $value)
             }
         }
     } else {
@@ -31,60 +22,11 @@ function Build-Environment {
     param (
         [Parameter(Mandatory)][string]$envFilePath,
         [Parameter(Mandatory)][string]$envSampleFilePath,
-        [array]$validationChecks
+        [array]$validationChecks,
+        [bool]$runInteractively = $true
     )
 
-    $contents = Build-EnvironmentCommon `
-        -envFilePath $envFilePath `
-        -envSampleFilePath $envSampleFilePath `
-        -validationChecks $validationChecks
-
-    if ($contents) {
-        $contents | Out-File -Encoding utf8 $envFilePath
-
-        if (Test-Path $envFilePath) {
-            Write-Host "File Created Successfully: $envFilePath" -ForegroundColor Green
-        } else {
-            Write-Host "Error: $envFilePath File Could Not Be Created." -ForegroundColor Red
-        }
-    } else {
-        Write-Host "Warning: No contents were generated." -ForegroundColor Yellow
-    }
-}
-
-function Build-BuildEnvironment {
-    param (
-        [Parameter(Mandatory)][string]$envFilePath,
-        [Parameter(Mandatory)][string]$envSampleFilePath,
-        [array]$validationChecks
-    )
-    
-    $contents = Build-EnvironmentCommon `
-        -envFilePath $envFilePath `
-        -envSampleFilePath $envSampleFilePath `
-        -validationChecks $validationChecks
-    
-    if ($contents) {
-        $contents | Out-File -Encoding utf8 $envFilePath
-    
-        if (Test-Path $envFilePath) {
-            Write-Host "File Created Successfully: $envFilePath" -ForegroundColor Green
-        } else {
-            Write-Host "Error: $envFilePath File Could Not Be Created." -ForegroundColor Red
-        }
-    } else {
-        Write-Host "Warning: No contents were generated." -ForegroundColor Yellow
-    }
-}
-
-function Build-EnvironmentCommon {
-    param (
-        [Parameter(Mandatory)][string]$envFilePath,
-        [Parameter(Mandatory)][string]$envSampleFilePath,
-        [array]$validationChecks
-    )
-
-    if (Test-Path $envFilePath) {
+    if ((Test-Path $envFilePath) -and $runInteractively) {
         $overwrite = Read-Host -Prompt "$envFilePath File Exists. Overwrite? (y/N)"
 
         if ($overwrite -eq '' -or $overwrite -ne 'y') {
@@ -112,9 +54,9 @@ function Build-EnvironmentCommon {
     # Load existing values from $envSampleFilePath if it exists
     $sampleValues = @{}
     if (Test-Path $envSampleFilePath) {
-        $sampleValues = Get-Content $envSampleFilePath | ForEach-Object {
+        Get-Content $envSampleFilePath | ForEach-Object {
             if ($_ -match "^(.*?)=(.*)$") {
-                return @{ $matches[1] = $matches[2] }
+                $sampleValues[$matches[1]] = $matches[2]
             }
         }
     }
@@ -124,22 +66,39 @@ function Build-EnvironmentCommon {
         $key = $_
         $value = $sampleValues.$key
 
-        # Prompt for each variable with defaults from existing .env.build
-        $newValue = Read-Host "Enter the $key (default: $value)"
+        # If non-interactive run, use the sample value directly
+        if (-not $runInteractively) {
+            $envValue = [System.Environment]::GetEnvironmentVariable($key)
 
-        if ($newValue) {
-            $realValues.$key = $newValue
-        } else {
-            $realValues.$key = $value
+            if ($envValue) {
+                #Write-Host "Setting $key to $envValue, from ENV"
+                $realValues.$key = $envValue
+            }
+            else {
+                #Write-Host "Setting $key to $value, from SAMPLE"
+                $realValues.$key = $value
+            }
+        }
+        else {
+            # Prompt for each variable with defaults from the sample file
+            $newValue = Read-Host "Enter the $key (default: $value)"
+
+            if ($newValue) {
+                $realValues.$key = $newValue
+            } else {
+                $realValues.$key = $value
+            }
         }
     }
+    
+    if  ($runInteractively) {
+        # Only perform validation checks when running interactively
+        foreach ($check in $validationChecks) {
+            if (& $check.ErrorCondition) {
+                Write-Host $check.Message -ForegroundColor Red
 
-    # Perform validation checks
-    foreach ($check in $validationChecks) {
-        if (& $check.ErrorCondition) {
-            Write-Host $check.Message -ForegroundColor Red
-
-            exit
+                exit
+            }
         }
     }
 
@@ -151,5 +110,19 @@ function Build-EnvironmentCommon {
         $contents += "$($key)=$($value)`n"
     }
 
-    return $contents.TrimEnd()
+    $contents = $contents.TrimEnd()
+
+    if ($contents) {
+        $contents | Out-File -Encoding utf8 $envFilePath
+
+        if (Test-Path $envFilePath) {
+            Write-Host "File Created Successfully: $envFilePath" -ForegroundColor Green
+
+            Set-Environment $envFilePath
+        } else {
+            Write-Host "Error: $envFilePath File Could Not Be Created." -ForegroundColor Red
+        }
+    } else {
+        Write-Host "Warning: No Contents Generated." -ForegroundColor Yellow
+    }
 }

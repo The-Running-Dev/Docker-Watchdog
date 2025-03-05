@@ -1,3 +1,7 @@
+param(
+    [bool]$runInteractively = $true
+)
+
 Clear-Host
 
 # Include the environment-functions
@@ -11,16 +15,11 @@ Build-Environment `
             Key = 'APIKey'
             Message = 'Error: APIKey Cannot be Empty...'
             ErrorCondition = { -not $($realValues.APIKey) -or $realValues.APIKey -eq 'INSERT_YOUR_API_KEY_HERE' }
-        }
-    )
-
-Build-BuildEnvironment `
-    -envFilePath $(Join-Path (Split-Path -Parent $PSScriptRoot) '.env.build') `
-    -envSampleFilePath $(Join-Path (Split-Path -Parent $PSScriptRoot) '.env.build.sample') `
-    -validationChecks @(
+        },
         @{
             Key = 'gitHubPackagesToken'
             Message = 'Error: gitHubPackagesToken Cannot be Empty...'
             ErrorCondition = { -not $($realValues.gitHubPackagesToken) -or $realValues.gitHubPackagesToken -eq 'INSERT_YOUR_TOKEN_HERE' }
         }
-    )
+    ) `
+    -runInteractively $runInteractively
