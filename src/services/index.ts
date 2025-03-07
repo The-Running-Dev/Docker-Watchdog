@@ -3,4 +3,5 @@
 export * from './docker.service';
 export * from './error-handling.service';
 export * from './logger.service';
+export * from './logger-stream.service';
 export * from './shell-execute.service';

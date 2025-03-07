@@ -7,7 +7,7 @@ deploy/
 .env
 .env.build
 .secrets
-Combined.log
+Service.log
 
 scripts/set-environment.js
 src/environments/environment.ts

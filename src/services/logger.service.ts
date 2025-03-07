@@ -7,6 +7,7 @@ import { TransformableInfo } from 'logform';
 @injectable()
 export class LoggerService {
     private logger: Logger;
+    private stream: string[] = [];
 
     constructor() {
         this.logger = createLogger({
@@ -22,24 +23,49 @@ export class LoggerService {
             ),
             transports: [
                 new transports.Console(),
-                new transports.File({ filename: 'Combined.log' })
+                new transports.File({ filename: 'Service.log' })
             ]
         });
     }
 
     info(message: string, data?: object) {
+        const logMessage = `${message} ${data ? JSON.stringify(data) : ''}`;
+
         this.logger.info(message, { meta: data });
+        this.addToStream(logMessage);
     }
 
     error(message: string, data?: object) {
+        const logMessage = `${message} ${data ? JSON.stringify(data) : ''}`;
+
         this.logger.error(message, { meta: data });
+        this.addToStream(logMessage);
     }
 
     warn(message: string, data?: object) {
+        const logMessage = `${message} ${data ? JSON.stringify(data) : ''}`;
+
         this.logger.warn(message, { meta: data });
+        this.addToStream(logMessage);
     }
 
     debug(message: string, data?: object) {
+        const logMessage = `${message} ${data ? JSON.stringify(data) : ''}`;
+
         this.logger.debug(message, { meta: data });
+        this.addToStream(logMessage);
+    }
+
+    getStream(): string[] {
+        return this.stream;
+    }
+
+    private addToStream(message: string) {
+        this.stream.push(message);
+
+        // Keep the last 1000 log entries
+        if (this.stream.length > 1000) {
+            this.stream.shift();
+        }
     }
 }

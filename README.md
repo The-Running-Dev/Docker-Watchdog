@@ -21,6 +21,7 @@ Docker Compose commands.
     - [`run-dev.ps1`](#run-devps1)
     - [`scripts\create-env.ps1`](#scriptscreate-envps1)
     - [`scripts\get.ps1`](#scriptsgetps1)
+    - [`scripts\get-logs.ps1`](#scriptsget-logsps1)
     - [`scripts\post-webhook.ps1`](#scriptspost-webhookps1)
     - [`scripts\run-sh-container.ps1`](#scriptsrun-sh-containerps1)
     - [Using the `.env` and `.env.build` Files in PowerShell Scripts](#using-the-env-and-envbuild-files-in-powershell-scripts)
@@ -206,7 +207,7 @@ A PowerShell script to build and run the application in development mode
 
 ### `scripts\create-env.ps1`
 
-A PowerShell script to create the `.env` and `.env.build` files
+A PowerShell script to create the `.env` file
 
 - **Usage**:
     ```powershell
@@ -220,6 +221,15 @@ A PowerShell script to send a GET request to the `/` endpoint.
 - **Usage**:
     ```powershell
     .\scripts\get.ps1
+    ```
+
+### `scripts\get-logs.ps1`
+
+A PowerShell script to send a GET request to the `/logs` endpoint.
+
+- **Usage**:
+    ```powershell
+    .\scripts\get-logs.ps1
     ```
 
 ### `scripts\post-webhook.ps1`

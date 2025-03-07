@@ -5,7 +5,7 @@ param (
 Clear-Host
 
 # Include the and execute the create-env script
-. (Join-Path $PSScriptRoot 'create-env.ps1') -runInteractively $true
+. (Join-Path $PSScriptRoot 'scripts\create-env.ps1') -runInteractively $false
 
 # Check if the image exists
 $imageExists = docker images -q $env:imageTag

@@ -25,7 +25,7 @@ export class DockerService {
     }
 
     async initialize() {
-        if (this.isProcessRunning()) {
+        if (await this.isProcessRunning()) {
             await this.getImages();
             await this.getComposeImages();
             this.cacheCreatedAt = new Date();
@@ -49,14 +49,21 @@ export class DockerService {
         }
     }
 
-    isProcessRunning(): boolean {
+    async isProcessRunning(): Promise<boolean> {
         try {
-            this.shellExecuteService.execute(DockerScripts.info, []);
+            const output = await this.shellExecuteService.execute(DockerScripts.info, []);
+            const result = JSON.parse(output);
+
+            if (!result.isRunning) {
+                this.logger.error(`${Messages.dockerNotRunning}${result.message}`);
+
+                return false;
+            }
 
             return true;
         } catch (error: any) {
-            this.logger.error(Messages.dockerNotRunning + error.message);
-
+            this.logger.error(`${Messages.dockerNotRunning}${error.message}`);
+            
             return false;
         }
     }
@@ -136,7 +143,7 @@ export class DockerService {
         }
     }
 
-    async restartComposeImage(request: WebhookRequest): Promise<{ success: boolean, message: string; image: string }> {
+    async restartComposeImage(request: WebhookRequest): Promise<{ success: boolean, message: string; image: string; config: string }> {
         const tag = request.data.tag;
         const hardReset = request.parameters.hardReset;
         const image = await this.findImageByTag(tag) as DockerComposeImage;
@@ -157,7 +164,8 @@ export class DockerService {
             return {
                 success: true,
                 message: Messages.dockerComposeExecutedSuccessfully,
-                image: image.Name
+                image: image.Name,
+                config: image.ConfigFiles
             };
         } catch (error: any) {
             this.logger.error(Messages.errorExecutingDockerCompose, { data: error.message });

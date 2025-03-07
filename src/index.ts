@@ -4,7 +4,7 @@ import 'reflect-metadata';
 import express from 'express';
 import container from './inversify.config';
 import TYPES from './types';
-import { DockerService, LoggerService } from './services';
+import { DockerService, LoggerService, LoggerStreamService } from './services';
 import { WebhookRequest, WebhookRequestSchema } from './models/webhook-request.model';
 import { apiKeyAuth, PromptUtils } from './utils';
 import { environment } from './environments/environment';
@@ -12,6 +12,7 @@ import { environment } from './environments/environment';
 const app = express();
 const dockerService = container.get<DockerService>(TYPES.DockerService);
 const logger = container.get<LoggerService>(TYPES.LoggerService);
+const loggerStream = container.get<LoggerStreamService>(TYPES.LoggerStreamService);
 
 app.use(express.json());
 app.use(apiKeyAuth(environment.apiKey));
@@ -23,6 +24,16 @@ app.get('/', async (_req: express.Request, response: express.Response): Promise<
         response.json({ images: images });
     } catch (error: any) {
         response.status(500).json({ message: "Error Fetching Images", error: error.message });
+    }
+});
+
+app.get('/logs', async (_req: express.Request, response: express.Response): Promise<void> => {
+    try {
+        const logs = loggerStream.getStream();
+
+        response.json(logs);
+    } catch (error: any) {
+        response.status(500).json({ message: "Error Fetching Logs", error: error.message });
     }
 });
 
@@ -52,14 +63,15 @@ app.post('/webhook', async (request: express.Request, response: express.Response
                 }
             });
         } else {
-            const { success, message, image } = await dockerService.restartComposeImage(webhookRequest);
+            const { success, message, image, config } = await dockerService.restartComposeImage(webhookRequest);
 
             response.json({
                 request: webhookRequest,
                 response: {
                     success: success,
                     message: message,
-                    image: image
+                    image: image,
+                    config: config
                 }
             });
         }

@@ -1,7 +1,7 @@
 Clear-Host
 
-# Include and execute the set-environment.ps1 script
-. (Join-Path $PSScriptRoot 'set-environment.ps1')
+# Include the and execute the create-env script
+. (Join-Path $PSScriptRoot 'create-env.ps1') -runInteractively $false
 
 if (-not $env:BaseUrl -or -not $env:APIKey) {
     Write-Output "Error: The BaseUrl or APIKey environment variables are not set."
