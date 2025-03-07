@@ -2,8 +2,6 @@ param(
     [bool]$runInteractively = $true
 )
 
-Clear-Host
-
 # Include the environment-functions
 . (Join-Path $PSScriptRoot 'environment-functions.ps1')
 

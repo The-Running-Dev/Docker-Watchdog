@@ -4,9 +4,10 @@
   "description": "A lightweight webhook listener using Express and TypeScript",
   "main": "index.ts",
   "scripts": {
-    "predev": "set NODE_ENV=development && ts-node ./scripts/set-environment.ts",
-    "preprod": "set NODE_ENV=production && tsc ./scripts/set-environment.ts && node ./scripts/set-environment.js",
+    "predev": "set NODE_ENV=development && ts-node src/scripts/set-environment.ts",
+    "preprod": "set NODE_ENV=production && tsc src/scripts/set-environment.ts && node src/scripts/set-environment.js",
     "dev": "if \"%OS%\" == \"Windows_NT\" (cls && ts-node-dev --clear src/index.ts) else (clear && ts-node-dev --clear src/index.ts)",
+    "version:bump": "npm version patch -m \"chore(release): bump version to %s\"",
     "prod": "tsc -p .",
     "start": "node index.js",
     "test": "jest",
@@ -19,6 +20,7 @@
     "joi": "^17.13.3",
     "keypress": "^0.2.1",
     "logform": "^2.7.0",
+    "pnpm": "^10.6.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "winston": "^3.17.0"

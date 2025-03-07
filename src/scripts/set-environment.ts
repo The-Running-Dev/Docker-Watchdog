@@ -12,8 +12,10 @@ class SetEnvironment {
     private port: number = 4000;
     private apiKey: string = '';
     private envFile = '../.env';
-    private projectEnvironmentFile = '../src/environments/environment.ts';
-
+    private projectEnvironmentFile = '../environments/environment.ts';
+    private version: string = '';
+    private buildDate: string = '';
+    
     constructor() {
         dotenv.config({ path: path.resolve(__dirname, this.envFile) });
 
@@ -24,6 +26,10 @@ class SetEnvironment {
         this.runInteractive = this.isProduction ? false : process.env.runInteractive === 'true';
         this.port = Number(process.env.Port) || 4000;
         this.apiKey = process.env.APIKey as string;
+
+        const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../package.json'), 'utf-8'));
+        this.version = packageJson.version;
+        this.buildDate = new Date().toISOString().replace(/[-:]/g, '.').replace('T', '.');
     }
 
     public createProjectEnvironment(): void {
@@ -33,6 +39,8 @@ export const environment = {
     runInteractive: ${this.runInteractive},
     port: ${this.port},
     apiKey: '${this.apiKey}',
+    version: '${this.version}',
+    buildDate: '${this.buildDate}',
     debugMode: true,
     logLevel: 'info',
     featureToggle: {
@@ -52,4 +60,5 @@ export const environment = {
 }
 
 const setEnvironment = new SetEnvironment();
+
 setEnvironment.createProjectEnvironment();

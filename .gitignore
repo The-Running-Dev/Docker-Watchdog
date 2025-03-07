@@ -9,5 +9,5 @@ deploy/
 .secrets
 Service.log
 
-scripts/set-environment.js
+src/scripts/set-environment.js
 src/environments/environment.ts

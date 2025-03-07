@@ -1,4 +1,7 @@
 Clear-Host
 
 # Include the and execute the create-env script
-. (Join-Path $PSScriptRoot 'build.ps1') -gitHubPush $false -runInteractively $false
+. (Join-Path $PSScriptRoot 'build.ps1') `
+    -gitHubPush $false `
+    -runInteractively $false `
+    -isProduction $false

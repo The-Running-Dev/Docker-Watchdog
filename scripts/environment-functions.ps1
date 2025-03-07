@@ -1,3 +1,54 @@
+function Install-GitHubCli {
+    # Check if the gh CLI is installed
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+        Write-Host "GitHub CLI (gh) is Not Installed. Installing it Now..." -ForegroundColor Yellow
+
+        if ($IsWindows) {
+            # Install gh CLI on Windows
+            Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://github.com/cli/cli/releases/latest/download/gh_2.0.0_windows_amd64.msi')
+            Start-Process msiexec.exe -ArgumentList '/i gh_2.0.0_windows_amd64.msi /quiet' -Wait
+        } elseif ($IsLinux) {
+            # Install gh CLI on Linux
+            Invoke-Expression (curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg)
+            sudo apt-add-repository https://cli.github.com/packages
+            sudo apt update
+            sudo apt install gh
+        } else {
+            Write-Host "Unsupported operating system. Please install GitHub CLI (gh) manually." -ForegroundColor Red
+            
+            exit 1
+        }
+
+        if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+            Write-Host "Failed to install GitHub CLI (gh). Please install it manually." -ForegroundColor Red
+            
+            exit 1
+        }
+    }
+}
+
+function Get-ReleaseNotes {
+    param (
+        [Parameter(Mandatory)][string]$packagesFilePath
+    )
+
+    if (Test-Path $packagesFilePath) {
+        # Read version from package.json
+        $packageJson = Get-Content -Raw -Path $packagesFilePath | ConvertFrom-Json
+        $version = $packageJson.version
+
+        # Create release notes content
+        return @{
+            Version = $version
+            Date = $(Get-Date -Format 'yyyy.MM.dd.HH.mm.ss')
+            Author = $env:GitHubUsername
+            Image = "$($env:GitHubImageTag):$version"
+        }
+    } else {
+        Write-Error "File Not Found: $packagesFilePath"
+    }
+}
+
 function Set-Environment {
     param (
         [Parameter(Mandatory)][string]$envFilePath

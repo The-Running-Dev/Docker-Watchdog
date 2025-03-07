@@ -81,7 +81,7 @@ app.post('/webhook', async (request: express.Request, response: express.Response
 });
 
 app.listen(environment.port, async () => {
-    logger.info(`Docker-Webhooks Listener Running on Port: ${environment.port}`);
+    logger.info(`Docker-Webhooks, v${environment.version} (${environment.buildDate}), Running on Port: ${environment.port}`);
 
     await dockerService.initialize();
 
