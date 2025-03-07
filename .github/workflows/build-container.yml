@@ -47,28 +47,3 @@ jobs:
         run: pwsh ./build.ps1
         env:
           GitHubPackagesToken: ${{ secrets.GITHUBPACKAGESTOKEN }}
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.sha }}
-          release_name: Release ${{ github.sha }}
-          body: |
-            Version: v1.0.0
-            Date: ${{ steps.first_commit.outputs.date }}
-            Author: ${{ github.actor }}
-            Commit ${{ github.sha }}
-            Docker Image: ghcr.io/the-running-dev/docker-webhooks:${{ github.sha }}
-            Notes: ${{ github.event.head_commit.message }}
-          draft: false
-          prerelease: false
-
-      - name: Create GitHub Package
-        run: |
-          echo "Creating GitHub Package for Docker Image..."
-          gh release create ${{ github.sha }} --repo the-running-dev/docker-webhooks --title "Docker Image ${{ github.sha }}" --notes "Docker Image: ghcr.io/the-running-dev/barstrad-agent:${{ github.sha }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
