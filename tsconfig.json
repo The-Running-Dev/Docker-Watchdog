@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "outDir": "deploy",
+    "outDir": "dist",
     "declaration": true,
     "emitDeclarationOnly": false,
     "target": "ESNext",
@@ -12,6 +12,6 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/The-Running-Dev/Docker-Webhooks.git"
+    "url": "https://github.com/The-Running-Dev/Container-Manager-Common.git"
   }
 }

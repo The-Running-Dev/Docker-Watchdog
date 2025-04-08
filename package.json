@@ -1,10 +1,11 @@
 {
   "name": "@subzerodev/container-manager-common",
   "version": "1.0.0",
-  "main": "deploy/index.js",
-  "types": "deploy/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
-    "deploy"
+    "dist",
+    "package.json"
   ],
   "scripts": {
     "build": "tsc"
