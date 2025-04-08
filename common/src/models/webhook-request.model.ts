@@ -1,0 +1,10 @@
+// shared/models/webhook-request.model.ts
+
+export interface WebhookRequest {
+    event: string;
+    data: {
+        projectOrContainerId: string;
+        hardReset: boolean;
+        isTest: boolean;
+    };
+}
