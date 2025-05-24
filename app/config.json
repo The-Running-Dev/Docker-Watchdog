@@ -1,0 +1,22 @@
+{
+  "ProjectsDirectory": "/projects",
+  "CronFilePath": "/etc/cron.d/docker-updater",
+  "CronSchedule": "0 4 * * *",
+  "ContainerDependencies": {},
+  "DiscordWebhookUrl": "",
+  "DockerComposeDownAdditionalArgs": [
+    "--volumes",
+    "--remove-orphans"
+  ],
+  "ExcludeProjects": [],
+  "IncludeProjects": [],
+  "LogFilePath": "/tmp/docker-updater.log",
+  "LockFilePath": "/tmp/docker-updater.lock",
+  "SendUpdaterNotifications": true,
+  "SendMonitorNotifications": true,
+  "SendAPINotifications": true,
+  "TimeZone": "UTC",
+  "UpdaterTest": false,
+  "UpdaterCronJob": true,
+  "UpdaterNotificationTitle": "Containers Update"
+}

@@ -1,0 +1,14 @@
+{
+  "ContainerDependencies": {
+    "vpn": ["torrents", "newsgroups"]
+  },
+  "DiscordWebhookUrl": "",
+  "ExcludeProjects": [],
+  "SendUpdaterNotifications": true,
+  "SendMonitorNotifications": true,
+  "SendAPINotifications": true,
+  "TimeZone": "UTC",
+  "UpdaterTest": false,
+  "UpdaterCronJob": true,
+  "UpdaterNotificationTitle": "Containers Update"
+}

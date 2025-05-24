@@ -1,0 +1,22 @@
+x-commonKeys: &commonOptions
+  restart: always
+  stdin_open: true
+  tty: true
+
+x-dnsServers: &dnsServers
+  dns:
+    - 45.90.28.29
+    - 45.90.30.29
+
+services:
+  watchdog:
+    image: ghcr.io/the-running-dev/watchdog:latest
+    container_name: watchdog
+    volumes:
+      - ./config.overrides.json:/app/config.overrides.json
+      - /share/CACHEDEV1_DATA/System/apps:/projects/apps
+      - ~/.docker/config.json:/root/.docker/config.json:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 7000:80
+    <<: [*dnsServers, *commonOptions]
