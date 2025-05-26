@@ -19,7 +19,7 @@ Write-Host "🏷️ Tagging the Docker image for GitHub Container Registry..."
 
 # Authenticate with GitHub Container Registry
 Write-Host "🔐 Authenticating with GitHub Container Registry..."
-$env:gitHubPackagesToken | & docker login ghcr.io -u $gitHubUsername --password-stdin
+$env:GitHubPackagesToken | & docker login ghcr.io -u $gitHubUsername --password-stdin
 
 # Push the image
 Write-Host "🚀 Pushing the Docker image to GitHub Container Registry..."
