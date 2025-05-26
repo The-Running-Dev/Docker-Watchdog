@@ -36,22 +36,16 @@ LABEL maintainer="ben@subzerodev.com" \
 
 # Install dependencies and PowerShell
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        cron \
-        locales \
-        docker.io \
-        curl \
-        ca-certificates \
-        jq \
-        gnupg \
-        apt-transport-https \
-        unzip && \
-    echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
-    locale-gen && \
+    apt-get install -y curl gnupg apt-transport-https && \
     curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/microsoft.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/microsoft-debian-bookworm-prod bookworm main" > /etc/apt/sources.list.d/microsoft.list && \
     apt-get update && \
-    apt-get install -y --no-install-recommends powershell && \
+    apt-get install -y --no-install-recommends \
+        powershell \
+        cron locales docker.io jq \
+        unzip nano procps && \
+    echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
+    locale-gen && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set working directory

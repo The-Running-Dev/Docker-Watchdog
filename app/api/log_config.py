@@ -5,7 +5,7 @@ import logging
 import pytz
 from datetime import datetime
 
-TIME_ZONE = os.getenv("TIME_ZONE", "UTC")
+TIME_ZONE = os.getenv("TimeZone", "UTC")
 
 class TZFormatter(logging.Formatter):
     def __init__(self, fmt=None, datefmt=None):
@@ -15,13 +15,13 @@ class TZFormatter(logging.Formatter):
     def formatTime(self, record, datefmt=None):
         dt = datetime.fromtimestamp(record.created, self.timezone)
         
-        return dt.strftime(datefmt or "%Y-%m-%d %H:%M:%S")
+        # Format with timezone offset included
+        return dt.strftime("%Y-%m-%d %H:%M:%S %z")
 
 def setup_logger(name: str = __name__) -> logging.Logger:
     handler = logging.StreamHandler()
     formatter = TZFormatter(
         fmt="[%(asctime)s] [%(levelname)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
     )
     handler.setFormatter(formatter)
 

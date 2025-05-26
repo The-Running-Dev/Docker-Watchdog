@@ -42,11 +42,7 @@ function Add-UpdaterCronJob {
     }
 
     # Build cron command
-    $cronCommand = "$schedule root pwsh -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$scriptPath`""
-    if ($script:config.UpdaterTest) {
-        $cronCommand += " -isTest"
-    }
-    $cronCommand += "`n"
+    $cronCommand = "$schedule root /usr/bin/pwsh -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$scriptPath`" >> /var/log/docker-updater.log 2>&1`n"
 
     # Write cron.d entry
     Set-Content -Path $script:config.CronFilePath -Value $cronCommand
@@ -236,6 +232,12 @@ function Get-DockerComposeProjects {
     return $projects
 }
 
+function Set-APIConfig {
+    $env:SendAPINotifications = $script:config.SendAPINotifications
+    $env:DiscordWebhookUrl = $script:config.DiscordWebhookUrl
+    $env:TimeZone = $script:config.TimeZone
+}
+
 function Get-Config {
     $configFilePath = Join-Path $PSScriptRoot "config.json"
     $configOverridesPath = Join-Path $PSScriptRoot "config.overrides.json"
@@ -417,13 +419,13 @@ function Invoke-DockerComposeRestart {
 
     # Invoke-DockerCompose `
     #     @("--file", $file, "down", $script:config.DockerComposeDownAdditionalArgs)
+    
     # Invoke-DockerCompose `
     #     @("--file", $file, "pull", "--ignore-pull-failures")
+    
     # & docker compose @("up", "--force-recreate", "--file", $file, "-d")
     # Invoke-DockerCompose  @("--file", $file, "up", "-d")
 
-    #Write-Host "docker compose up --force-recreate --file $file -d"
-    #docker compose --file /share/CACHEDEV1_DATA/System/apps/guacamole/docker-compose.yml up -d --force-recreate
     try {
         & docker compose --file $file up -d --force-recreate
     } catch {
@@ -884,6 +886,7 @@ Export-ModuleMember `
     Restart-Container, `
     Restart-Unhealthy, `
     Send-DiscordNotification, `
+    Set-APIConfig,
     Start-ProcessProject, `
     Start-Update, `
     Start-Watchdog, `

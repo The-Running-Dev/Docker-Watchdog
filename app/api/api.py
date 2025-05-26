@@ -7,9 +7,9 @@ from flask import Flask, request, jsonify
 
 from api.log_config import setup_logger
 
-SEND_NOTIFICATIONS = os.getenv("SEND_API_NOTIFICATIONS", "true").lower() in ("1", "true", "yes", "on")
-DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
-TIME_ZONE = os.getenv("TIME_ZONE", "UTC")
+SEND_NOTIFICATIONS = os.getenv("SendAPINotifications", "true").lower() in ("1", "true", "yes", "on")
+DISCORD_WEBHOOK_URL = os.getenv("DiscordWebhookUrl")
+TIME_ZONE = os.getenv("TimeZone", "UTC")
 
 # Configure logging
 log = setup_logger(__name__)
@@ -26,6 +26,7 @@ def restart():
 
     if not data:
         log.warning("No JSON payload received.")
+
         return jsonify({"error": "No JSON Received"}), 400
 
     monitor = data.get("monitor", {})

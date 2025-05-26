@@ -33,12 +33,10 @@ if (-not (Test-Path $gunicorn)) {
 
 Get-Config
 
-$env:SEND_API_NOTIFICATIONS=$script:config.SendAPINotifications
-$env:DISCORD_WEBHOOK_URL=$script:config.DiscordWebhookUrl
-$env:TIME_ZONE=$script:config.TimeZone
+Set-APIConfig
 
 # Start Flask API via Gunicorn
-Write-Log "🚀 Starting Flask API On Port $($env:PORT), Notifications: $($env:SEND_API_NOTIFICATIONS)..."
+Write-Log "🚀 Starting Flask API On Port $($env:PORT), Notifications: $($env:SendAPINotifications)..."
 
 Start-Process -FilePath $gunicorn `
   -ArgumentList "-w", "2", "--timeout", "120", "-b", "0.0.0.0:$env:PORT", "api.api:app" `
