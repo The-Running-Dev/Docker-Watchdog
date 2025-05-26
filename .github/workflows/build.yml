@@ -12,7 +12,7 @@ permissions:
   packages: write
 
 jobs:
-  Build-and-Push-Bot:
+  Build-and-Push:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/the-running-dev/build-agent:latest
@@ -20,23 +20,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-
-      - name: Cache Node.js Modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node
-
-      - name: Verify Container Environment
-        run: |
-          echo "Running Custom Agent...
-          Node: $(node -v)
-          NPM: $(npm -v)
-          $(pwsh --version)
-          $(docker --version)
-          "
 
       - name: Build and Push
         run: pwsh ./build.ps1
