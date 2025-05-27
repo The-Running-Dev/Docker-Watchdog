@@ -173,7 +173,6 @@ function Get-DockerComposeProjects {
     }
     
     foreach ($composeFile in $composeFiles) {
-        #$composeFile = $_
         $project = Split-Path $composeFile.FullName -Parent | Split-Path -Leaf
         $configDir = Split-Path $composeFile.FullName -Parent
         $containers = @()
@@ -221,11 +220,12 @@ function Get-DockerComposeProjects {
         }
 
         $projects += [PSCustomObject]@{
-            Name       = $project
-            Directory  = $configDir
-            Config     = Split-Path $composeFile -Leaf
-            Containers = $containers
-            HasUpdatedImages = $updatedImages -gt 0
+            Name                = $project
+            Directory           = $configDir
+            Config              = Split-Path $composeFile -Leaf
+            ComposeFile         = $composeFile.FullName
+            Containers          = $containers
+            HasUpdatedImages    = $updatedImages -gt 0
         }
     }
 
@@ -631,7 +631,7 @@ function Start-ProcessProject {
 
     Write-Info "➡️ Restarting $($project.Name)..."
 
-    Invoke-DockerComposeRestart $composeFile
+    Invoke-DockerComposeRestart $project.ComposeFile
 
     Start-Sleep -Seconds 10
 
