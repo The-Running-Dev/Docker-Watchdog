@@ -690,11 +690,11 @@ function Start-Update {
             $summary += "`n$($result.Summary)"
         }
 
-        Invoke-Docker @("image", "prune", "-a", "-f") | Out-Null
-        Write-Info "✅ Cleaned Up Dangling Images"
+        Invoke-Docker @("system", "prune", "--all", "--force") | Out-Null
+        Write-Info "✅ Cleaned Up Dangling Images, Volumes and Networks"
 
-        Invoke-Docker @("volume", "prune", "-f") | Out-Null
-        Write-Info "✅ Cleaned Up Dangling Volumes"
+        #Invoke-Docker @("volume", "prune", "-f") | Out-Null
+        #Write-Info "✅ Cleaned Up Dangling Volumes"
 
         Write-Info "Processed $processedCount, Skipped $skippedCount"
         Write-Info "Finished Sweep: $(Get-TimeStamp)"
