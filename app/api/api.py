@@ -25,12 +25,31 @@ def restart():
     data = request.get_json()
 
     if not data:
-        log.warning("No JSON payload received.")
+        log.warning("No JSON Payload Received.")
 
         return jsonify({"error": "No JSON Received"}), 400
 
-    monitor = data.get("monitor", {})
-    heartbeat = data.get("heartbeat", {})
+    monitor = data.get("monitor")
+    heartbeat = data.get("heartbeat")
+
+    # If both monitor and heartbeat are None, redirect to /health
+    if monitor is None and heartbeat is None:
+        log.info("Both 'monitor' and 'heartbeat' are None. Redirecting to /health.")
+
+        return health_check()
+
+    if monitor is None:
+        log.warning("No 'monitor' Object in Payload.")
+
+        return jsonify({"error": "No 'monitor' Object in Payload"}), 400
+
+    if heartbeat is None:
+        log.warning("No 'heartbeat' Object in Payload.")
+
+        return jsonify({"error": "No 'heartbeat' Object in Payload"}), 400
+
+    monitor = monitor or {}
+    heartbeat = heartbeat or {}
     status = heartbeat.get("status")
     description = monitor.get("description", "")
     service_url = monitor.get("url", "")
