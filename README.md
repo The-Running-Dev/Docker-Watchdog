@@ -45,13 +45,18 @@ Docker-Watchdog is composed of three tightly integrated layers:
 
 ```mermaid
 flowchart TD
-    Kuma[Uptime Kuma / API Client]
-    Kuma -->|POST /restart| FlaskAPI[Flask API (api.py)]
-    Kuma -->|POST /restart-project| FlaskAPI
-    FlaskAPI -->|subprocess| PSModule[PowerShell Module (watchdog.psm1)]
-    PSModule -->|docker CLI| Docker[Docker Engine]
-    PSModule -->|webhook| Discord[Discord]
-    FlaskAPI -->|webhook| Discord
+    Kuma["Uptime Kuma / API Client"]
+    FlaskAPI["Flask API (api.py)"]
+    PSModule["PowerShell Module (watchdog.psm1)"]
+    Docker["Docker Engine"]
+    Discord["Discord"]
+
+    Kuma --> FlaskAPI
+    Kuma --> FlaskAPI
+    FlaskAPI --> PSModule
+    PSModule --> Docker
+    PSModule --> Discord
+    FlaskAPI --> Discord
 ```
 
 - Health events are also monitored directly by the PowerShell module via `docker events`.
