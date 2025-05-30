@@ -8,18 +8,115 @@
 
 Docker-Watchdog is a robust, containerized management and automation tool for Docker Compose environments. It automatically keeps your containers up-to-date, monitors their health, and provides a RESTful API for integration with monitoring tools like Uptime Kuma. It is designed for self-hosters and DevOps engineers who want hands-off, reliable, and observable Docker operations.
 
+---
+
 ## 🚀 Features
 
-- **Automated Container Updates**: Scheduled Docker Compose project updates via configurable cron jobs that automatically pull the latest images and recreate containers
-- **Health Monitoring**: Real-time container health monitoring with automatic recovery actions for unhealthy containers
-- **Discord Notifications**: Detailed notifications about container updates, restarts, and health status via Discord webhooks
-- **REST API**: Flask-based API for remote management and integration with monitoring tools like Uptime Kuma
-- **Dependency Management**: Custom container dependency configurations to ensure proper restart order when dependent services need to be restarted
-- **PowerShell Core**: Cross-platform compatibility using PowerShell Core for robust container management
-- **Project Filtering**: Include/exclude specific Docker Compose projects from monitoring and updates
-- **Containerized Solution**: Runs as a container itself for easy deployment and integration into your existing Docker environment
-- **Timezone Support**: Configurable timezone for accurate logging and scheduling
-- **Intelligent Restart Logic**: Only restarts containers when actual image updates are detected
+- **Automated Container Updates**: Scheduled Docker Compose project updates via configurable cron jobs that automatically pull the latest images and recreate containers.
+- **Health Monitoring**: Real-time container health monitoring with automatic recovery actions for unhealthy containers.
+- **Discord Notifications**: Detailed notifications about container updates, restarts, and health status via Discord webhooks.
+- **REST API**: Flask-based API for remote management and integration with monitoring tools like Uptime Kuma.
+- **Dependency Management**: Custom container dependency configurations to ensure proper restart order when dependent services need to be restarted.
+- **PowerShell Core**: Cross-platform compatibility using PowerShell Core for robust container management.
+- **Project Filtering**: Include/exclude specific Docker Compose projects from monitoring and updates.
+- **Containerized Solution**: Runs as a container itself for easy deployment and integration into your existing Docker environment.
+- **Timezone Support**: Configurable timezone for accurate logging and scheduling.
+- **Intelligent Restart Logic**: Only restarts containers when actual image updates are detected.
+- **Comprehensive Logging**: All actions and errors are logged with timestamps and levels, both to file and stdout.
+- **Robust Error Handling**: All API endpoints and scripts include detailed error handling and validation.
+
+---
+
+## 🏗️ Architecture & Workflow
+
+Docker-Watchdog is composed of three tightly integrated layers:
+
+1. **PowerShell Module (`watchdog.psm1`)**
+   - Handles all Docker Compose project discovery, update logic, health checks, dependency management, and notification logic.
+   - Exposes functions for project scanning, container restarts, cron job management, and more.
+2. **Flask API (`api.py`)**
+   - Provides a RESTful interface for external tools (e.g., Uptime Kuma) to trigger container or project restarts.
+   - Handles payload validation, error reporting, and notification dispatch.
+3. **Docker Infrastructure**
+   - Containerized with a multi-stage Dockerfile, using PowerShell Core and Python in a single image.
+   - Uses Docker Compose for deployment and volume mounting for configuration and project access.
+
+### Workflow Diagram
+
+```mermaid
+flowchart TD
+    Kuma[Uptime Kuma / API Client]
+    Kuma -->|POST /restart| FlaskAPI[Flask API (api.py)]
+    Kuma -->|POST /restart-project| FlaskAPI
+    FlaskAPI -->|subprocess| PSModule[PowerShell Module (watchdog.psm1)]
+    PSModule -->|docker CLI| Docker[Docker Engine]
+    PSModule -->|webhook| Discord[Discord]
+    FlaskAPI -->|webhook| Discord
+```
+
+- Health events are also monitored directly by the PowerShell module via `docker events`.
+- Notifications are sent to Discord via webhooks from both PowerShell and Python layers.
+
+---
+
+## 📁 Project Structure
+
+```text
+Docker-Watchdog/
+├── app/                        # Application source code
+│   ├── api/                    # Flask API code
+│   │   ├── api.py              # API implementation
+│   │   └── log_config.py       # Logging configuration
+│   ├── config.json             # Default configuration
+│   ├── entrypoint.ps1          # Container entry point script
+│   ├── requirements.txt        # Python dependencies
+│   ├── run-update.ps1          # Script to run update process
+│   └── watchdog.psm1           # PowerShell module with core functionality
+├── build.ps1                   # Build script for GitHub Container Registry
+├── config.overrides.json       # User configuration overrides
+├── docker-compose.example      # Example Docker Compose file
+├── docker-compose.yml          # Docker Compose file for deployment
+└── Dockerfile                  # Multi-stage build definition
+```
+
+---
+
+## 🧩 Module & Script Roles
+
+### PowerShell Module: `watchdog.psm1`
+
+- **Project Discovery**: Scans the projects directory for Docker Compose files.
+- **Update Logic**: Pulls new images, restarts only if updates are detected, and prunes unused resources.
+- **Health Monitoring**: Listens to Docker health events and triggers restarts (with dependency handling) for unhealthy containers.
+- **Dependency Management**: Ensures dependent containers are restarted in the correct order.
+- **Notifications**: Sends Discord notifications for updates, restarts, and failures.
+- **Cron Management**: Installs and manages cron jobs for scheduled updates.
+- **Configuration**: Loads and merges settings from `config.json` and `config.overrides.json`.
+- **Logging**: All actions are logged with timestamps and levels.
+
+### Flask API: `api.py`
+
+- `/health`: Simple health check endpoint.
+- `/restart`: Accepts Uptime Kuma-style payloads to restart a specific container, with validation and notification.
+- `/restart-project`: Accepts project restart requests, pulls latest images, and recreates containers for a named project.
+- **Error Handling**: All endpoints validate payloads and return detailed error messages.
+- **Logging**: Uses a custom logger with timezone-aware formatting (see `log_config.py`).
+
+### Entrypoint: `entrypoint.ps1`
+
+- Loads the PowerShell module, sets up environment/config, starts the Flask API (via Gunicorn), installs the updater cron job, and launches the health monitoring loop.
+
+### Update Script: `run-update.ps1`
+
+- Loads the PowerShell module and triggers a one-off update sweep (used by cron).
+
+### Dockerfile
+
+- Multi-stage build: Installs Python, PowerShell, Docker CLI, Docker Compose plugin, and all dependencies.
+- Copies all scripts and configuration into the image.
+- Sets up the entrypoint and healthcheck.
+
+---
 
 ## 📋 Requirements
 
@@ -27,6 +124,8 @@ Docker-Watchdog is a robust, containerized management and automation tool for Do
 - Docker Compose (v2, as a plugin)
 - Docker socket access (for container management)
 - Volume mounts for Docker Compose projects
+
+---
 
 ## 🔧 Installation
 
@@ -97,6 +196,8 @@ docker run -d \
   ghcr.io/the-running-dev/watchdog:latest
 ```
 
+---
+
 ## ⚙️ Configuration
 
 ### Configuration Files
@@ -121,6 +222,7 @@ docker run -d \
 | `TimeZone` | Time zone for logs and operations | `UTC` |
 | `UpdaterTest` | Run updater in test mode | `false` |
 | `UpdaterCronJob` | Enable updater cron job | `true` |
+| `UpdaterNotificationTitle` | Title for update notifications | `Containers Update` |
 
 #### Environment Variables
 
@@ -143,82 +245,162 @@ Define container dependencies to ensure proper restart order. For example:
 
 In this example, if the `vpn` container is restarted, the `torrents` and `newsgroups` containers will also be restarted in that order.
 
-## 🌐 API Endpoints
+---
+
+## 🌐 API Reference
 
 The Docker-Watchdog API is available on port 80 within the container (mapped to your chosen external port). The API is built with Flask and uses Gunicorn as the WSGI server for production deployments.
 
-### Available Endpoints
+### Endpoints
 
-- `GET /health`: Health check endpoint that returns a JSON response with status "healthy"
-- `POST /restart`: Restart a Docker container
-  - Accepts JSON payload (typically from Uptime Kuma monitoring)
-  - Determines container name from payload
-  - Validates container existence
-  - Restarts the container
-  - Sends notification via Discord (if enabled)
-  - Returns JSON with restart status
-- `POST /restart-project`: Restart a Docker Compose project (by name)
-  - Accepts JSON payload: `{ "event": "update-project", "data": { "projectId": "<name>", "additionalArgs": [ ... ], "isTest": false } }`
-  - Pulls latest images and recreates containers for the specified project
-  - Returns JSON with status
+#### `GET /health`
 
-#### Example API Usage with Uptime Kuma
+- **Description**: Health check endpoint.
+- **Response**:
 
-Docker-Watchdog is designed to work seamlessly with [Uptime Kuma](https://github.com/louislam/uptime-kuma) for monitoring and automatic recovery:
-
-1. Set up Uptime Kuma to monitor your Docker containers
-2. Configure a "Push" action in Uptime Kuma to call your Docker-Watchdog `/restart` endpoint when a container becomes unhealthy
-3. Docker-Watchdog will handle restarting the container and send a notification about the recovery
-
-## 📊 Monitoring
-
-Docker-Watchdog monitors:
-
-1. Docker events for container health changes
-2. Scheduled updates for all Docker Compose projects
-3. API requests for container restarts
-
-## 🔄 Automatic Updates
-
-By default, Docker-Watchdog updates all Docker Compose projects daily at 4 AM UTC:
-
-1. Identifies Docker Compose projects in the configured directory
-2. Pulls latest images for each project
-3. Recreates containers with updated images
-4. Monitors health status after updates
-5. Sends notifications about update results
-
-## 📝 Logging
-
-Logs are written to `/tmp/watchdog.log` inside the container and to stdout. Timestamps are shown in the configured timezone and include the offset (e.g., `[2025-05-25 12:46:21 +03:00]`).
-
-## 🛠️ Troubleshooting
-
-- **No Compose Projects Detected:** Ensure your Docker Compose project directory is correctly mounted to `/projects` and contains valid `docker-compose.yml` files.
-- **No Discord Notifications:** Double-check your `DiscordWebhookUrl` in `config.overrides.json` or the `DISCORD_WEBHOOK_URL` environment variable.
-- **API Not Responding:** Make sure the container is running and the port is mapped correctly. Check logs for errors.
-- **Permission Issues:** The container needs access to the Docker socket (`/var/run/docker.sock`) and your Compose project files.
-- **Timezone Issues:** Set the `TIME_ZONE` environment variable to your preferred timezone (IANA format).
-
-## 📁 Project Structure
-
+```json
+{
+  "status": "healthy"
+}
 ```
-Docker-Watchdog/
-├── app/                        # Application source code
-│   ├── api/                    # Flask API code
-│   │   ├── api.py              # API implementation
-│   │   └── log_config.py       # Logging configuration
-│   ├── config.json             # Default configuration
-│   ├── entrypoint.ps1          # Container entry point script
-│   ├── requirements.txt        # Python dependencies
-│   ├── run-update.ps1          # Script to run update process
-│   └── watchdog.psm1           # PowerShell module with core functionality
-├── build.ps1                   # Build script for GitHub Container Registry
-├── config.overrides.json       # User configuration overrides
-├── docker-compose.example      # Example Docker Compose file
-├── docker-compose.yml          # Docker Compose file for deployment
-└── Dockerfile                  # Multi-stage build definition
+
+#### `POST /restart`
+
+- **Description**: Restart a Docker container based on a monitoring payload (e.g., from Uptime Kuma).
+- **Request Example**:
+
+```json
+{
+  "monitor": {
+    "name": "my-service",
+    "description": "container-my-service",
+    "url": "http://localhost:8080"
+  },
+  "heartbeat": {
+    "status": 0,
+    "timezone": "UTC"
+  }
+}
 ```
+
+- **Response (Success)**:
+
+```json
+{
+  "status": "my-service Restarted"
+}
+```
+
+- **Response (Container Not Found)**:
+
+```json
+{
+  "error": "container_not_found",
+  "details": "Container 'my-service' Not Found",
+  "container": "my-service"
+}
+```
+
+- **Response (Error)**:
+
+```json
+{
+  "error": "failed",
+  "details": "...error message...",
+  "container": "my-service"
+}
+```
+
+#### `POST /restart-project`
+
+- **Description**: Restart a Docker Compose project by name, pulling latest images and recreating containers.
+- **Request Example**:
+
+```json
+{
+  "event": "update-project",
+  "data": {
+    "projectId": "myproject",
+    "additionalArgs": ["--remove-orphans"],
+    "isTest": false
+  }
+}
+```
+
+- **Response (Success)**:
+
+```json
+{
+  "status": "Project 'myproject' Restarted Successfully.",
+  "additionalArgs": ["--remove-orphans"]
+}
+```
+
+- **Response (Error)**:
+
+```json
+{
+  "error": "Docker Compose Pull Failed",
+  "details": "...error message..."
+}
+```
+
+### API Security
+
+- The API is intended for use within trusted networks or behind a reverse proxy with authentication.
+- No authentication is enabled by default; add a reverse proxy (e.g., Traefik, Nginx) for production security.
+
+---
+
+## 📝 Real-World Usage & Advanced Scenarios
+
+### Integration with Uptime Kuma
+
+- Configure Uptime Kuma to send a webhook to `/restart` when a container is detected as unhealthy.
+- Docker-Watchdog will validate the payload, restart the container, and send a Discord notification.
+
+### CI/CD Integration
+
+- Use the `/restart-project` endpoint in your CI/CD pipeline to trigger zero-downtime rolling updates after a new image is pushed.
+- Example GitHub Actions step:
+
+```yaml
+- name: Trigger Watchdog Project Restart
+  run: |
+    curl -X POST http://your-watchdog-host:7000/restart-project \
+      -H 'Content-Type: application/json' \
+      -d '{"event":"update-project","data":{"projectId":"myproject","additionalArgs":["--remove-orphans"],"isTest":false}}'
+```
+
+### Custom Health Monitoring
+
+- Use the PowerShell module directly to build custom health checks or restart logic.
+- Extend the Discord notification logic for other chat platforms by modifying the notification functions.
+
+### Edge Cases & Troubleshooting
+
+- **Cron Not Running**: Ensure the container is started with `--cap-add=SYS_TIME` if you need to set the system time or run cron jobs in some environments.
+- **Docker Socket Permissions**: The container must have access to `/var/run/docker.sock` and the user must have permission to manage Docker.
+- **Project Not Detected**: Ensure your Compose files are named `docker-compose.yml` or `docker-compose.*.yml` and are in the mapped projects directory.
+- **Timezone Issues**: Set the `TIME_ZONE` environment variable to a valid IANA timezone string.
+
+---
+
+## 📊 Monitoring & Logging
+
+- All actions, errors, and health events are logged to `/tmp/watchdog.log` and to stdout.
+- Log entries include timestamps (with timezone offset), log level, and message.
+- The Flask API uses a custom logger with timezone-aware formatting (see `log_config.py`).
+
+---
+
+## 🔒 Security Considerations
+
+- The API is unauthenticated by default. For production, restrict access to trusted networks or use a reverse proxy with authentication.
+- Discord webhook URLs should be kept secret; do not commit them to version control.
+- The container requires access to the Docker socket; only run on trusted hosts.
+
+---
 
 ## 🛠️ Building from Source
 
@@ -246,11 +428,16 @@ $env:GitHubPackagesToken = 'your-github-pat'
 ./build.ps1
 ```
 
+---
+
 ## 🧪 Testing & Development
 
 - To build and run locally, use the provided `docker-compose.yml` or `docker-compose.example`.
 - For local development, you can mount your source code and config files directly into the container.
 - Use `run.ps1` or `run.sh` for quick local rebuilds.
+- All scripts are cross-platform (Linux/Windows/Mac) via PowerShell Core.
+
+---
 
 ## 📦 Image Publishing
 
@@ -264,17 +451,25 @@ $env:GitHubPackagesToken = 'your-github-pat'
 ./build.ps1
 ```
 
+---
+
 ## 📝 Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes and version history.
+
+---
 
 ## 📜 License
 
 [MIT License](LICENSE)
 
+---
+
 ## 👥 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+---
 
 ## 📞 Contact
 
