@@ -24,7 +24,7 @@ Docker-Watchdog is a robust, containerized management and automation tool for Do
 ## 📋 Requirements
 
 - Docker
-- Docker Compose (v2)
+- Docker Compose (v2, as a plugin)
 - Docker socket access (for container management)
 - Volume mounts for Docker Compose projects
 
@@ -109,7 +109,7 @@ docker run -d \
 | Option | Description | Default |
 |--------|-------------|---------|
 | `ProjectsDirectory` | Directory containing Docker Compose projects | `/projects` |
-| `CronFilePath` | Path to cron file | `/etc/cron.d/docker-updater` |
+| `CronFilePath` | Path to cron file | `/etc/cron.d/watchdog` |
 | `CronSchedule` | Cron schedule for updates | `0 4 * * *` (4 AM daily) |
 | `ContainerDependencies` | Container dependencies map | `{}` |
 | `DiscordWebhookUrl` | Discord webhook URL for notifications | `""` |
@@ -157,6 +157,10 @@ The Docker-Watchdog API is available on port 80 within the container (mapped to 
   - Restarts the container
   - Sends notification via Discord (if enabled)
   - Returns JSON with restart status
+- `POST /restart-project`: Restart a Docker Compose project (by name)
+  - Accepts JSON payload: `{ "event": "update-project", "data": { "projectId": "<name>", "additionalArgs": [ ... ], "isTest": false } }`
+  - Pulls latest images and recreates containers for the specified project
+  - Returns JSON with status
 
 #### Example API Usage with Uptime Kuma
 
@@ -186,7 +190,7 @@ By default, Docker-Watchdog updates all Docker Compose projects daily at 4 AM UT
 
 ## 📝 Logging
 
-Logs are written to `/tmp/docker-updater.log` inside the container and to stdout. Timestamps are shown in the configured timezone and include the offset (e.g., `[2025-05-25 12:46:21 +03:00]`).
+Logs are written to `/tmp/watchdog.log` inside the container and to stdout. Timestamps are shown in the configured timezone and include the offset (e.g., `[2025-05-25 12:46:21 +03:00]`).
 
 ## 🛠️ Troubleshooting
 
@@ -239,7 +243,7 @@ The project includes scripts for publishing the image to GitHub Container Regist
 $env:GitHubPackagesToken = 'your-github-pat'
 
 # Build and push
-.\build.ps1
+./build.ps1
 ```
 
 ## 🧪 Testing & Development

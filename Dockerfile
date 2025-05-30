@@ -36,14 +36,24 @@ LABEL maintainer="ben@subzerodev.com" \
 
 # Install dependencies and PowerShell
 RUN apt-get update && \
-    apt-get install -y curl gnupg apt-transport-https && \
-    curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/microsoft.gpg && \
+    apt-get install -y curl gnupg ca-certificates apt-transport-https lsb-release && \
+    # Microsoft repo for PowerShell
+    curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/microsoft-debian-bookworm-prod bookworm main" > /etc/apt/sources.list.d/microsoft.list && \
+    # Docker repo for Compose plugin
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         powershell \
-        cron locales docker.io jq \
-        unzip nano procps && \
+        cron \
+        locales \
+        docker.io \
+        docker-compose-plugin \
+        jq \
+        unzip \
+        nano \
+        procps && \
     echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen && \
     apt-get clean && rm -rf /var/lib/apt/lists/*

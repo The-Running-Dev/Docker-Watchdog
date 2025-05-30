@@ -1,17 +1,17 @@
 $script:config = @{
     ProjectsDirectory = "/projects"
     ContainerDependencies = @{}
-    CronFilePath = "/etc/cron.d/docker-updater"
+    CronFilePath = "/etc/cron.d/watchdog"
     CronSchedule = "0 4 * * *"
     DiscordWebhookUrl = ""
-    DockerComposeDownAdditionalArgs = @(
-        "--volumes",
+    DockerComposeAdditionalArgs = @(
+        "--always-recreate-deps"
         "--remove-orphans"
     )
     ExcludeProjects = @()
     IncludeProjects = @()
-    LogFilePath = "/tmp/docker-updater.log"
-    LockFilePath = "/tmp/docker-updater.lock"
+    LogFilePath = "/tmp/watchdog.log"
+    LockFilePath = "/tmp/watchdog.lock"
     PulledImages = @{}
     SendUpdaterNotifications = $true
     SendMonitorNotifications = $false
@@ -42,7 +42,7 @@ function Add-UpdaterCronJob {
     }
 
     # Build cron command
-    $cronCommand = "$schedule root /usr/bin/pwsh -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$scriptPath`" >> /var/log/docker-updater.log 2>&1`n"
+    $cronCommand = "$schedule root /usr/bin/pwsh -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$scriptPath`" >> /var/log/watchdog.log 2>&1`n"
 
     # Write cron.d entry
     Set-Content -Path $script:config.CronFilePath -Value $cronCommand
@@ -88,7 +88,7 @@ function Confirm-ImageUpdated {
         $runningImageId = (Invoke-DockerInspect $container | ConvertFrom-Json)[0].Image
 
         if ($latestImageId -ne $runningImageId) {
-            Write-Error "`tℹ️ New Images Exists for $container"
+            Write-Error "`t✅ New Images Exists..."
         }
 
         return $latestImageId -ne $runningImageId
@@ -334,11 +334,11 @@ function Install-Updater {
 
 function Invoke-Docker {
     param (
-        [Parameter(Mandatory)][string[]]$args
+        [Parameter(Mandatory)][string[]]$arguments
     )
 
     try {
-        & docker @args
+        & docker @arguments
     } catch {
         Write-Error "❌ Failed to Execute Docker Command: $_"
     }
@@ -346,11 +346,11 @@ function Invoke-Docker {
 
 function Invoke-DockerInspect {
     param (
-        [Parameter(Mandatory)][string[]]$args
+        [Parameter(Mandatory)][string[]]$arguments
     )
 
     try {
-        & docker inspect @args
+        & docker inspect @arguments
     } catch {
         Write-Error "❌ Failed to Execute Docker Inspect: $_"
     }
@@ -358,11 +358,11 @@ function Invoke-DockerInspect {
 
 function Invoke-DockerImageInspect {
     param (
-        [Parameter(Mandatory)][string[]]$args
+        [Parameter(Mandatory)][string[]]$arguments
     )
 
     try {
-        & docker image inspect @args
+        & docker image inspect @arguments
     } catch {
         Write-Error "❌ Failed to Execute Docker Inspect: $_"
     }
@@ -370,7 +370,7 @@ function Invoke-DockerImageInspect {
 
 function Invoke-DockerPull {
     param (
-        [Parameter(Mandatory)][string[]]$args
+        [Parameter(Mandatory)][string[]]$arguments
     )
 
     try {
@@ -382,54 +382,33 @@ function Invoke-DockerPull {
 
 function Invoke-DockerCompose {
     param (
-        [Parameter(Mandatory)][string[]]$args
+        [Parameter(Mandatory)][string[]]$arguments
     )
 
     if ($script:config.UpdaterTest) {
-        Write-Info "`tℹ️ Simulating 'docker compose $($args -join ' '))'"
+        Write-Info "`tℹ️ Simulating 'docker compose $($arguments -join ' '))'"
 
         return
     }
 
     try {
-        & docker compose @args
+        & docker compose @arguments
     } catch {
         Write-Error "❌ Failed to Execute Docker Compose: $_"
     }
 }
 
-function Invoke-DockerComposeList {
-    if ($script:config.UpdaterTest) {
-        Write-Info "`tℹ️ Simulating 'docker compose ls --format json'"
-
-        return
-    }
-
-    try {
-        & docker compose ls --format json | ConvertFrom-Json
-    } catch {
-        Write-Error "❌ Failed to Execute Docker Compose List: $_"
-    }
-}
-
 function Invoke-DockerComposeRestart {
     param (
-        [Parameter(Mandatory)][string[]]$file
+        [Parameter(Mandatory)][string]$file
     )
 
-    # Invoke-DockerCompose `
-    #     @("--file", $file, "down", $script:config.DockerComposeDownAdditionalArgs)
-    
-    # Invoke-DockerCompose `
-    #     @("--file", $file, "pull", "--ignore-pull-failures")
-    
-    # & docker compose @("up", "--force-recreate", "--file", $file, "-d")
-    # Invoke-DockerCompose  @("--file", $file, "up", "-d")
-
     try {
-        & docker compose --file $file up -d --force-recreate
+        $composeArgs = @('--file', $file, 'up', '-d') + ($script:config.DockerComposeAdditionalArgs | ForEach-Object { $_.ToString() })
+      
+        & docker compose @composeArgs *> $null
     } catch {
-        Write-Error "❌ Failed to Execute Docker Compose Down: $_"
+        Write-Error "❌ Failed to Execute Docker Compose Up: $_"
     }
 }
 
@@ -527,7 +506,10 @@ function Read-ConfigFile {
                 Write-Error "❌ Invalid Time Zone: $($value)"
             }
         } elseif ($key -eq "CronSchedule") {
-            if (-not [regex]::IsMatch($value, '^\s*([0-5]?\d|\*)\s+([01]?\d|2[0-3]|\*)\s+([1-9]|[12]\d|3[01]|\*)\s+([1-9]|1[0-2]|\*)\s+([0-6]|\*)\s*$')) {
+            # Accepts standard cron, step values (e.g., 0/30, */5), and asterisk
+            $cronRegex = '^(\s*([0-5]?\d|\*|[0-5]?\d/\d+|\*/\d+)\s+([01]?\d|2[0-3]|\*|[01]?\d/\d+|\*/\d+)\s+([1-9]|[12]\d|3[01]|\*|[1-9]|[12]\d|3[01]/\d+|\*/\d+)\s+([1-9]|1[0-2]|\*|[1-9]|1[0-2]/\d+|\*/\d+)\s+([0-6]|\*|[0-6]/\d+|\*/\d+)\s*)$'
+            
+            if (-not [regex]::IsMatch($value, $cronRegex)) {
                 Write-Error "❌ Invalid Cron Schedule: $($value)"
             }
         }
@@ -559,6 +541,11 @@ function Remove-Lock {
     Remove-Item -Path $script:config.LockFilePath -Force -ErrorAction SilentlyContinue
 }
 
+function Get-DiscordTimestamp {
+    # Discord requires ISO 8601 UTC format
+    return (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+}
+
 function Send-DiscordNotification {
     param (
         [Parameter(Mandatory)][string]$title,
@@ -568,21 +555,22 @@ function Send-DiscordNotification {
         [Parameter()][hashtable]$footer = @{}
     )
 
-    $timestamp = Get-TimeStamp
+    $embed = @{
+        title       = $title
+        description = $description
+        color       = $color
+        timestamp   = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+        fields      = $fields
+    }
+    # Ensure footer has at least a text field or remove it
+    if ($footer.Count -ne 0) {
+        $embed.footer = $footer
+    }
 
-    $payload = @{
-        embeds = @(@{
-            title = $title
-            description = $description
-            color = $color
-            timestamp = $timestamp
-            fields = $fields
-            footer = $footer
-        })
-    } | ConvertTo-Json -Depth 10
+    $payload = @{ embeds = @($embed) } | ConvertTo-Json -Depth 10
 
     try {
-         Invoke-RestMethod `
+        Invoke-RestMethod `
             -Uri $script:config.DiscordWebhookUrl `
             -Method Post `
             -ContentType "application/json" `
@@ -594,12 +582,13 @@ function Send-DiscordNotification {
             $statusCode = $_.Exception.Response.StatusCode.Value__
             $responseText = $_.ErrorDetails.Message
 
-            Write-Warning "⚠️ Discord Webhook Returned $($statusCode): $responseText"
+            Write-Warning "⚠️ Discord Webhook Returned ${statusCode}: $responseText"
         } else {
             Write-Error "❌ Failed to Send Discord Notification: $_"
         }
     }
 }
+
 
 function Send-DiscordNotificationForServiceRestart {
     param (
@@ -614,7 +603,7 @@ function Send-DiscordNotificationForServiceRestart {
             @{ name = "Service Name"; value = $serviceName; inline = $false }
             @{ name = "Time"; value = $timestamp; inline = $false }
         ) `
-        -footer @{ text = "Uptime Kuma Auto Recovery" }
+        -footer @{ text = "Auto Recovery" }
 }
 
 function Start-ProcessProject {
@@ -648,13 +637,13 @@ function Start-ProcessProject {
     }
 
     if ($allHealthy) {
-        Write-Info "`t✅ All Services Healthy."
+        Write-Info "`t✅ All Services Healthy..."
 
-        $result.Summary = " - $($projectName): ✅ All Services Healthy."
+        $result.Summary = " - ${project.Name}: ✅ All Services Healthy."
     } else {
-        Write-Warning "`t⚠️ Some Services Failed Health Checks."
+        Write-Warning "`t⚠️ Some Services Failed Health Checks..."
 
-        $result.Summary = " - $($projectName): ⚠️ Some Services Failed Health Checks."
+        $result.Summary = " - ${project.Name}: ⚠️ Some Services Failed Health Checks."
     }
 
     return [PSCustomObject]$result
@@ -693,9 +682,6 @@ function Start-Update {
         Invoke-Docker @("system", "prune", "--all", "--force") | Out-Null
         Write-Info "✅ Cleaned Up Dangling Images, Volumes and Networks"
 
-        #Invoke-Docker @("volume", "prune", "-f") | Out-Null
-        #Write-Info "✅ Cleaned Up Dangling Volumes"
-
         Write-Info "Processed $processedCount, Skipped $skippedCount"
         Write-Info "Finished Sweep: $(Get-TimeStamp)"
 
@@ -703,7 +689,8 @@ function Start-Update {
             Send-DiscordNotification `
                 -title "$($script:config.UpdaterNotificationTitle)" `
                 -description $summary `
-                -color 5763719
+                -color 5763719 `
+                -footer @{ text = "Update Complete" }
         }
     } finally {
         Remove-Lock
@@ -867,7 +854,7 @@ function Write-Log {
 }
 
 Export-ModuleMember `
-    Add-CronJob, `
+    Add-UpdateCronJob, `
     Confirm-ImageUpdated, `
     Confirm-IncludeProject, `
     Confirm-PreflightCheck, `
@@ -879,7 +866,6 @@ Export-ModuleMember `
     Install-Updater, `
     Invoke-Docker, `
     Invoke-DockerCompose, `
-    Invoke-DockerComposeList, `
     Invoke-DockerComposeRestart, `
     Read-ConfigFile, `
     Remove-Lock,`

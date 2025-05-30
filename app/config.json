@@ -1,17 +1,17 @@
 {
   "ProjectsDirectory": "/projects",
-  "CronFilePath": "/etc/cron.d/docker-updater",
+  "CronFilePath": "/etc/cron.d/watchdog",
   "CronSchedule": "0 4 * * *",
   "ContainerDependencies": {},
   "DiscordWebhookUrl": "",
-  "DockerComposeDownAdditionalArgs": [
-    "--volumes",
+  "DockerComposeAdditionalArgs": [
+    "--always-recreate-deps",
     "--remove-orphans"
   ],
   "ExcludeProjects": [],
   "IncludeProjects": [],
-  "LogFilePath": "/tmp/docker-updater.log",
-  "LockFilePath": "/tmp/docker-updater.lock",
+  "LogFilePath": "/tmp/watchdog.log",
+  "LockFilePath": "/tmp/watchdog.lock",
   "SendUpdaterNotifications": true,
   "SendMonitorNotifications": true,
   "SendAPINotifications": true,

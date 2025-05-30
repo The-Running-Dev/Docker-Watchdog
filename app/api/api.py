@@ -11,7 +11,6 @@ SEND_NOTIFICATIONS = os.getenv("SendAPINotifications", "true").lower() in ("1", 
 DISCORD_WEBHOOK_URL = os.getenv("DiscordWebhookUrl")
 TIME_ZONE = os.getenv("TimeZone", "UTC")
 
-# Configure logging
 log = setup_logger(__name__)
 
 app = Flask(__name__)
@@ -111,6 +110,63 @@ def restart():
             "details": result.stderr.strip(),
             "container": container_name
         }), 500
+
+@app.route("/restart-project", methods=["POST"])
+def restart_project():
+    data = request.get_json()
+
+    log.info(f"/restart-project payload: {data}")
+
+    # Expecting payload: {"event": "update-project", "data": {"projectId": ..., "additionalArgs": ..., "isTest": ...}}
+    if not data or data.get("event") != "update-project" or "data" not in data:
+        log.warning("Invalid Payload: Missing 'event' or 'data' Field.")
+
+        return jsonify({"error": "Invalid Payload: Missing 'event' or 'data' Field."}), 400
+
+    event_data = data["data"]
+    project_name = event_data.get("projectId")
+    additional_args = event_data.get("additionalArgs", [])
+    is_test = event_data.get("isTest", False)
+    project_dir = "."
+
+    if not project_name:
+        log.warning("No 'projectId' Provided in Payload.")
+
+        return jsonify({"error": "No 'projectId' Provided in Payload."}), 400
+
+    if is_test:
+        log.info("Test Mode Enabled, Skipping Restart.")
+
+        return jsonify({"status": f"Test Mode: Would Restart Project '{project_name}' (additionalArgs={additional_args})"}), 200
+
+    compose_base = ["docker", "compose", "-p", project_name]
+
+    if additional_args and isinstance(additional_args, list):
+        compose_base += additional_args
+    elif additional_args and isinstance(additional_args, str):
+        compose_base += [additional_args]
+
+    # Step 1: docker compose pull
+    pull_cmd = compose_base + ["pull"]
+    pull_proc = subprocess.run(pull_cmd, cwd=project_dir, capture_output=True, text=True)
+
+    if pull_proc.returncode != 0:
+        log.error(f"Docker Compose Pull Failed: {pull_proc.stderr.strip()}")
+
+        return jsonify({"error": "Docker Compose Pull Failed", "details": pull_proc.stderr.strip()}), 500
+
+    # Step 2: docker compose up -d
+    up_cmd = compose_base + ["up", "-d"]
+    up_proc = subprocess.run(up_cmd, cwd=project_dir, capture_output=True, text=True)
+
+    if up_proc.returncode != 0:
+        log.error(f"Docker Compose Up Failed: {up_proc.stderr.strip()}")
+
+        return jsonify({"error": "Docker Compose Up Failed", "details": up_proc.stderr.strip()}), 500
+
+    log.info(f"Project '{project_name}' Restarted Successfully (additionalArgs={additional_args}).")
+
+    return jsonify({"status": f"Project '{project_name}' Restarted Successfully.", "additionalArgs": additional_args}), 200
 
 def send_discord_notification(service_name: str, service_url: str, time_zone: str):
     if not DISCORD_WEBHOOK_URL:
