@@ -1,5 +1,51 @@
 # Docker-Watchdog
 
+<!-- TOC -->
+- [Docker-Watchdog](#docker-watchdog)
+  - [🚀 Features](#-features)
+  - [🏗️ Architecture \& Workflow](#️-architecture--workflow)
+    - [Workflow Diagram](#workflow-diagram)
+  - [📁 Project Structure](#-project-structure)
+  - [🧩 Module \& Script Roles](#-module--script-roles)
+    - [PowerShell Module: `watchdog.psm1`](#powershell-module-watchdogpsm1)
+    - [Flask API: `api.py`](#flask-api-apipy)
+    - [Entrypoint: `entrypoint.ps1`](#entrypoint-entrypointps1)
+    - [Update Script: `run-update.ps1`](#update-script-run-updateps1)
+    - [Dockerfile](#dockerfile)
+  - [📋 Requirements](#-requirements)
+  - [🔧 Installation](#-installation)
+    - [Using Docker Compose (Recommended)](#using-docker-compose-recommended)
+    - [Using Docker CLI](#using-docker-cli)
+  - [⚙️ Configuration](#️-configuration)
+    - [Configuration Files](#configuration-files)
+    - [Configuration Options](#configuration-options)
+      - [Environment Variables](#environment-variables)
+    - [Container Dependencies](#container-dependencies)
+  - [🌐 API Reference](#-api-reference)
+    - [Endpoints](#endpoints)
+      - [`GET /health`](#get-health)
+      - [`POST /restart`](#post-restart)
+      - [`POST /restart-project`](#post-restart-project)
+    - [API Security](#api-security)
+  - [📝 Real-World Usage \& Advanced Scenarios](#-real-world-usage--advanced-scenarios)
+    - [Integration with Uptime Kuma](#integration-with-uptime-kuma)
+    - [CI/CD Integration](#cicd-integration)
+    - [Custom Health Monitoring](#custom-health-monitoring)
+    - [Edge Cases \& Troubleshooting](#edge-cases--troubleshooting)
+  - [📊 Monitoring \& Logging](#-monitoring--logging)
+  - [🔒 Security Considerations](#-security-considerations)
+  - [🛠️ Building from Source](#️-building-from-source)
+    - [Publishing to GitHub Container Registry](#publishing-to-github-container-registry)
+  - [🧪 Testing \& Development](#-testing--development)
+  - [📦 Image Publishing](#-image-publishing)
+  - [🏥 Container Healthcheck Requirements](#-container-healthcheck-requirements)
+  - [🖥️ Uptime Kuma Monitor Setup Example](#️-uptime-kuma-monitor-setup-example)
+  - [📝 Changelog](#-changelog)
+  - [📜 License](#-license)
+  - [👥 Contributing](#-contributing)
+  - [📞 Contact](#-contact)
+<!-- /TOC -->
+
 ![Docker-Watchdog Logo](https://img.shields.io/badge/Docker-Watchdog-blue?style=for-the-badge&logo=docker)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5391FE?style=for-the-badge&logo=powershell&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
@@ -138,55 +184,55 @@ Docker-Watchdog/
 
 1. Create a `docker-compose.yml` file based on the example provided:
 
-```yaml
-x-commonKeys: &commonOptions
-  restart: always
-  stdin_open: true
-  tty: true
-
-x-dnsServers: &dnsServers
-  dns:
-    - 45.90.28.29
-    - 45.90.30.29
-
-services:
-  watchdog:
-    image: ghcr.io/the-running-dev/watchdog:latest
-    container_name: watchdog
-    volumes:
-      - ./config.overrides.json:/app/config.overrides.json
-      - /path/to/your/projects:/projects
-      - ~/.docker/config.json:/root/.docker/config.json:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-    ports:
-      - 7000:80
-    <<: [*dnsServers, *commonOptions]
-```
+   ```yaml
+   x-commonKeys: &commonOptions
+     restart: always
+     stdin_open: true
+     tty: true
+   
+   x-dnsServers: &dnsServers
+     dns:
+       - 45.90.28.29
+       - 45.90.30.29
+   
+   services:
+     watchdog:
+       image: ghcr.io/the-running-dev/watchdog:latest
+       container_name: watchdog
+       volumes:
+         - ./config.overrides.json:/app/config.overrides.json
+         - /path/to/your/projects:/projects
+         - ~/.docker/config.json:/root/.docker/config.json:ro
+         - /var/run/docker.sock:/var/run/docker.sock
+       ports:
+         - 7000:80
+       <<: [*dnsServers, *commonOptions]
+   ```
 
 2. Create a `config.overrides.json` file to override default settings:
 
-```json
-{
-  "ContainerDependencies": {
-    "vpn": ["torrents", "newsgroups"]
-  },
-  "DiscordWebhookUrl": "YOUR_DISCORD_WEBHOOK_URL",
-  "ExcludeProjects": [],
-  "SendUpdaterNotifications": true,
-  "SendMonitorNotifications": true,
-  "SendAPINotifications": true,
-  "TimeZone": "UTC",
-  "UpdaterTest": false,
-  "UpdaterCronJob": true,
-  "UpdaterNotificationTitle": "Containers Update"
-}
-```
+   ```json
+   {
+     "ContainerDependencies": {
+       "vpn": ["torrents", "newsgroups"]
+     },
+     "DiscordWebhookUrl": "YOUR_DISCORD_WEBHOOK_URL",
+     "ExcludeProjects": [],
+     "SendUpdaterNotifications": true,
+     "SendMonitorNotifications": true,
+     "SendAPINotifications": true,
+     "TimeZone": "UTC",
+     "UpdaterTest": false,
+     "UpdaterCronJob": true,
+     "UpdaterNotificationTitle": "Containers Update"
+   }
+   ```
 
 3. Start the container:
 
-```powershell
-docker compose up -d
-```
+   ```powershell
+   docker compose up -d
+   ```
 
 ### Using Docker CLI
 
@@ -455,6 +501,71 @@ $env:GitHubPackagesToken = 'your-github-pat'
 # Build and push
 ./build.ps1
 ```
+
+---
+
+## 🏥 Container Healthcheck Requirements
+
+For Docker-Watchdog to monitor and automatically recover containers, your Docker Compose services **must define a healthcheck**. The healthcheck status is used to determine if a container is healthy or needs to be restarted.
+
+**Example Docker Compose healthcheck:**
+
+```yaml
+services:
+  torrents:
+    image: your-torrent-image
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+```
+
+- The `healthcheck` section is required for each service you want Docker-Watchdog to monitor.
+- The health status (`healthy`/`unhealthy`) is what triggers automatic restarts and notifications.
+
+---
+
+## 🖥️ Uptime Kuma Monitor Setup Example
+
+To integrate Uptime Kuma with Docker-Watchdog for a container (e.g., `container-torrents`):
+
+1. **Set up a webhook notification to Docker-Watchdog:**
+   - Go to **Settings > Notifications > Set Up Notification** in Uptime Kuma.
+   - **Name:** Watchdog
+   - **Notification Type:** Webhook
+   - **Post URL:** `http://<watchdog-host>:7000/restart`
+   - **Request Body Preset:** `application/json`
+
+2. **Create a monitor and enable the Watchdog notification:**
+   - Create a new monitor for your container
+   - **Enable the Watchdog notification** for this monitor.
+   - In the **Description** field, enter the container to be restarted (e.g., `container-torrents` will restart the `torrents` container).
+   - The description is used by Docker-Watchdog to map the monitor to the correct container.
+
+   **Example Description:**
+   ```
+   container-torrents
+   ```
+
+   **Example Payload Sent by Uptime Kuma:**
+   ```json
+   {
+     "monitor": {
+       "name": "container-torrents",
+       "description": "container-torrents",
+     },
+     "heartbeat": {
+       "status": 0,
+       "timezone": "UTC"
+     }
+   }
+   ```
+
+3. **How it works:**
+   - When Uptime Kuma detects the container is down/unhealthy, it sends a webhook to Docker-Watchdog.
+   - Docker-Watchdog parses the payload, restarts the container specified in the description, and sends a notification (e.g., to Discord).
 
 ---
 
