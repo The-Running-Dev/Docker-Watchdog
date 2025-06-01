@@ -28,7 +28,7 @@
       - [`POST /restart-project`](#post-restart-project)
     - [API Security](#api-security)
   - [📝 Real-World Usage \& Advanced Scenarios](#-real-world-usage--advanced-scenarios)
-    - [Integration with Uptime Kuma](#integration-with-uptime-kuma)
+  - [🖥️ Uptime Kuma Monitor Setup](#️-uptime-kuma-monitor-setup)
     - [CI/CD Integration](#cicd-integration)
     - [Custom Health Monitoring](#custom-health-monitoring)
     - [Edge Cases \& Troubleshooting](#edge-cases--troubleshooting)
@@ -39,7 +39,6 @@
   - [🧪 Testing \& Development](#-testing--development)
   - [📦 Image Publishing](#-image-publishing)
   - [🏥 Container Healthcheck Requirements](#-container-healthcheck-requirements)
-  - [🖥️ Uptime Kuma Monitor Setup Example](#️-uptime-kuma-monitor-setup-example)
   - [📝 Changelog](#-changelog)
   - [📜 License](#-license)
   - [👥 Contributing](#-contributing)
@@ -405,10 +404,49 @@ The Docker-Watchdog API is available on port 80 within the container (mapped to 
 
 ## 📝 Real-World Usage & Advanced Scenarios
 
-### Integration with Uptime Kuma
+## 🖥️ Uptime Kuma Monitor Setup
 
 - Configure Uptime Kuma to send a webhook to `/restart` when a container is detected as unhealthy.
 - Docker-Watchdog will validate the payload, restart the container, and send a Discord notification.
+- Example: to integrate Uptime Kuma with Docker-Watchdog for a container (e.g., `container-torrents`):
+
+1. **Set up a webhook notification to Docker-Watchdog:**
+   - Go to **Settings > Notifications > Set Up Notification** in Uptime Kuma.
+   - **Name:** Watchdog
+   - **Notification Type:** Webhook
+   - **Post URL:** `http://<watchdog-host>:7000/restart`
+   - **Request Body Preset:** `application/json`
+
+2. **Create a monitor and enable the Watchdog notification:**
+   - Create a new monitor for your container
+   - **Enable the Watchdog notification** for this monitor.
+   - In the **Description** field, enter the container to be restarted (e.g., `container-torrents` will restart the `torrents` container).
+   - The description is used by Docker-Watchdog to map the monitor to the correct container.
+
+   **Example Description:**
+   ```
+   container-torrents
+   ```
+
+   **Example Payload Sent by Uptime Kuma:**
+   ```json
+   {
+     "monitor": {
+       "name": "container-torrents",
+       "description": "container-torrents",
+     },
+     "heartbeat": {
+       "status": 0,
+       "timezone": "UTC"
+     }
+   }
+   ```
+
+3. **How it works:**
+   - When Uptime Kuma detects the container is down/unhealthy, it sends a webhook to Docker-Watchdog.
+   - Docker-Watchdog parses the payload, restarts the container specified in the description, and sends a notification (e.g., to Discord).
+
+---
 
 ### CI/CD Integration
 
@@ -524,48 +562,6 @@ services:
 
 - The `healthcheck` section is required for each service you want Docker-Watchdog to monitor.
 - The health status (`healthy`/`unhealthy`) is what triggers automatic restarts and notifications.
-
----
-
-## 🖥️ Uptime Kuma Monitor Setup Example
-
-To integrate Uptime Kuma with Docker-Watchdog for a container (e.g., `container-torrents`):
-
-1. **Set up a webhook notification to Docker-Watchdog:**
-   - Go to **Settings > Notifications > Set Up Notification** in Uptime Kuma.
-   - **Name:** Watchdog
-   - **Notification Type:** Webhook
-   - **Post URL:** `http://<watchdog-host>:7000/restart`
-   - **Request Body Preset:** `application/json`
-
-2. **Create a monitor and enable the Watchdog notification:**
-   - Create a new monitor for your container
-   - **Enable the Watchdog notification** for this monitor.
-   - In the **Description** field, enter the container to be restarted (e.g., `container-torrents` will restart the `torrents` container).
-   - The description is used by Docker-Watchdog to map the monitor to the correct container.
-
-   **Example Description:**
-   ```
-   container-torrents
-   ```
-
-   **Example Payload Sent by Uptime Kuma:**
-   ```json
-   {
-     "monitor": {
-       "name": "container-torrents",
-       "description": "container-torrents",
-     },
-     "heartbeat": {
-       "status": 0,
-       "timezone": "UTC"
-     }
-   }
-   ```
-
-3. **How it works:**
-   - When Uptime Kuma detects the container is down/unhealthy, it sends a webhook to Docker-Watchdog.
-   - Docker-Watchdog parses the payload, restarts the container specified in the description, and sends a notification (e.g., to Discord).
 
 ---
 

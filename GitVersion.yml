@@ -1,0 +1,30 @@
+mode: ContinuousDeployment
+next-version: v0.0.0
+
+branches:
+  main:
+    regex: ^main$
+    increment: Minor
+  feature:
+    regex: ^features?[/-]
+    increment: Inherit
+    source-branches: [main]
+  release:
+    regex: ^releases?[/-]
+    increment: Patch
+    source-branches: [main]
+  hotfix:
+    regex: ^hotfix(es)?[/-]
+    increment: Patch
+    source-branches: [main]
+  pull-request:
+    regex: ^(pull|pr)[/-]
+    increment: Inherit
+    source-branches: [main, feature, release, hotfix]
+
+ignore:
+  sha: []
+  commits-before: 2024-01-01T00:00:00Z
+
+commit-message-incrementing: Enabled
+tag-prefix: v

@@ -6,6 +6,8 @@ $ErrorActionPreference = "Stop"
 
 Import-Module "$PSScriptRoot/watchdog.psm1"
 
+Get-Config
+
 if (-not (Get-Command Write-Log -ErrorAction SilentlyContinue)) {
     Write-Error "❌ ERROR: Write-Log() Function Not Found. Failed to Load watchdog.psm1"
 
@@ -30,8 +32,6 @@ if (-not (Test-Path $gunicorn)) {
 
     exit 1
 }
-
-Get-Config
 
 Set-APIConfig
 

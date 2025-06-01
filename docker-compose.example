@@ -12,6 +12,8 @@ services:
   watchdog:
     image: ghcr.io/the-running-dev/watchdog:latest
     container_name: watchdog
+    environment:
+      - TZ=${TIME_ZONE:-UTC}
     volumes:
       - ./config.overrides.json:/app/config.overrides.json
       - /share/CACHEDEV1_DATA/System/apps:/projects/apps

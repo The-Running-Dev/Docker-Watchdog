@@ -1,6 +1,6 @@
 # Validate that the GitHub token is set
-if (-not $env:GitHubPackagesToken -or [string]::IsNullOrWhiteSpace($env:GitHubPackagesToken)) {
-    Write-Host "❌ GitHub Packages Token is required..."
+if (-not $env:PackagesToken -or [string]::IsNullOrWhiteSpace($env:PackagesToken)) {
+    Write-Host "❌ Packages Token is required..."
 
     exit 1
 }
@@ -19,7 +19,7 @@ Write-Host "🏷️ Tagging the Docker image for GitHub Container Registry..."
 
 # Authenticate with GitHub Container Registry
 Write-Host "🔐 Authenticating with GitHub Container Registry..."
-$env:GitHubPackagesToken | & docker login ghcr.io -u $gitHubUsername --password-stdin
+$env:PackagesToken | & docker login ghcr.io -u $gitHubUsername --password-stdin
 
 # Push the image
 Write-Host "🚀 Pushing the Docker image to GitHub Container Registry..."

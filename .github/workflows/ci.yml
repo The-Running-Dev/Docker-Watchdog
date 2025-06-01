@@ -10,9 +10,10 @@ on:
 
 permissions:
   packages: write
+  contents: write
 
 jobs:
-  Build-and-Push:
+  Container:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/the-running-dev/build-agent:latest
@@ -20,8 +21,10 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-      - name: Build and Push
-        run: pwsh ./build.ps1
+      - name: Container CI
+        run: docker-ci
         env:
-          GitHubPackagesToken: ${{ secrets.GITHUBPACKAGESTOKEN }}
+          PackagesToken: ${{ secrets.GITHUBPACKAGESTOKEN }}

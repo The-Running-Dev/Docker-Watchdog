@@ -4,3 +4,7 @@ build-local.ps1
 .env
 
 .idea/
+
+.resolved-version
+
+.nuke/temp/
