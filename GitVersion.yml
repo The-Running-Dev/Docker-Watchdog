@@ -1,5 +1,4 @@
 mode: ContinuousDeployment
-# next-version: v0.0.0
 
 branches:
   main:
