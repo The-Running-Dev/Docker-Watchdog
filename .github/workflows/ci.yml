@@ -1,4 +1,4 @@
-name: Build and Push
+name: Container CI
 
 on:
   workflow_dispatch:
@@ -27,4 +27,5 @@ jobs:
       - name: Container CI
         run: docker-ci
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PackagesToken: ${{ secrets.GITHUBPACKAGESTOKEN }}
