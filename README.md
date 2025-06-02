@@ -220,7 +220,6 @@ Docker-Watchdog/
      "SendUpdaterNotifications": true,
      "SendMonitorNotifications": true,
      "SendAPINotifications": true,
-     "TimeZone": "UTC",
      "UpdaterTest": false,
      "UpdaterCronJob": true,
      "UpdaterNotificationTitle": "Containers Update"
@@ -269,7 +268,6 @@ docker run -d \
 | `SendUpdaterNotifications` | Send notifications for updates | `true` |
 | `SendMonitorNotifications` | Send notifications for monitoring events | `true` |
 | `SendAPINotifications` | Send notifications for API events | `true` |
-| `TimeZone` | Time zone for logs and operations | `UTC` |
 | `UpdaterTest` | Run updater in test mode | `false` |
 | `UpdaterCronJob` | Enable updater cron job | `true` |
 | `UpdaterNotificationTitle` | Title for update notifications | `Containers Update` |
@@ -471,7 +469,7 @@ The Docker-Watchdog API is available on port 80 within the container (mapped to 
 - **Cron Not Running**: Ensure the container is started with `--cap-add=SYS_TIME` if you need to set the system time or run cron jobs in some environments.
 - **Docker Socket Permissions**: The container must have access to `/var/run/docker.sock` and the user must have permission to manage Docker.
 - **Project Not Detected**: Ensure your Compose files are named `docker-compose.yml` or `docker-compose.*.yml` and are in the mapped projects directory.
-- **Timezone Issues**: Set the `TIME_ZONE` environment variable to a valid IANA timezone string.
+- **Timezone Issues**: Set the `TZ` environment variable to a valid IANA timezone string.
 
 ---
 

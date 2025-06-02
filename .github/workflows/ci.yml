@@ -1,4 +1,4 @@
-name: Container CI
+name: Container-CI
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  Container:
+  Container-CI:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/the-running-dev/build-agent:latest

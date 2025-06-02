@@ -16,7 +16,6 @@ $script:config = @{
     SendUpdaterNotifications = $true
     SendMonitorNotifications = $false
     SendAPINotifications = $false
-    TimeZone = "UTC"
     UpdaterTest = true
     UpdaterCronJob = true
     UpdaterNotificationTitle = "Containers Update"
@@ -235,7 +234,7 @@ function Get-DockerComposeProjects {
 function Set-APIConfig {
     $env:SendAPINotifications = $script:config.SendAPINotifications
     $env:DiscordWebhookUrl = $script:config.DiscordWebhookUrl
-    $env:TimeZone = $script:config.TimeZone
+    $env:TimeZone = [System.TimeZoneInfo]::Local
 }
 
 function Get-Config {
@@ -302,7 +301,7 @@ function Get-Lock {
 
 function Get-TimeStamp {
     try {
-        $tz = [System.TimeZoneInfo]::FindSystemTimeZoneById($script:config.TimeZone)
+        $tz = [System.TimeZoneInfo]::Local
         $utcNow = (Get-Date).ToUniversalTime()
         $localTime = [System.TimeZoneInfo]::ConvertTimeFromUtc($utcNow, $tz)
 
@@ -374,7 +373,7 @@ function Invoke-DockerPull {
     )
 
     try {
-        & docker pull @args *> $null
+        & docker pull @arguments *> $null
     } catch {
         Write-Error "❌ Failed to Execute Docker Pull: $_"
     }
@@ -500,10 +499,6 @@ function Read-ConfigFile {
                 $value = $true
             } else {
                 $value = $false
-            }
-        } elseif ($key -eq "TimeZone") {
-            if (-not [System.TimeZoneInfo]::GetSystemTimeZones() | Where-Object { $_.Id -eq $value }) {
-                Write-Error "❌ Invalid Time Zone: $($value)"
             }
         } elseif ($key -eq "CronSchedule") {
             # Accepts standard cron, step values (e.g., 0/30, */5), and asterisk
