@@ -234,7 +234,7 @@ function Get-DockerComposeProjects {
 function Set-APIConfig {
     $env:SendAPINotifications = $script:config.SendAPINotifications
     $env:DiscordWebhookUrl = $script:config.DiscordWebhookUrl
-    $env:TimeZone = [System.TimeZoneInfo]::Local
+    $env:TimeZone = ([System.TimeZoneInfo]::Local).Id
 }
 
 function Get-Config {
