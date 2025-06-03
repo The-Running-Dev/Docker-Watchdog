@@ -709,7 +709,6 @@ function Start-Watchdog {
 
     try {
         & docker @dockerArgs | ForEach-Object {
-            # Check for lock file before processing each event
             $maxWaitSeconds = 600
             $waitedSeconds = 0
 
@@ -791,7 +790,7 @@ function Wait-ForHealthy {
     $waited = 0
     while ($waited -lt $maxWait) {
         if (Test-ServiceHealth $name) {
-            Write-Info "$name is Healthy."
+            Write-Info "`t✅ $name is Healthy..."
 
             return $true
         }
@@ -801,7 +800,7 @@ function Wait-ForHealthy {
         $waited += 10
     }
 
-    Write-Warning "⚠️ $name Did Not Become Healthy in $maxWait Seconds."
+    Write-Warning "`t⚠️ $name Not Healthy ($maxWait Seconds)..."
 
     return $false
 }
