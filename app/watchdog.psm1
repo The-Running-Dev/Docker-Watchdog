@@ -154,7 +154,7 @@ function Convert-ToCapitalCase {
     }
 }
 
-function Get-DockerComposeProjects {
+function Get-ProjectsWithUpdatedImages {
     $projects = @()
 
     Write-Info "🔍 Scanning for Docker Compose Projects in $($script:config.ProjectsDirectory)..."
@@ -601,7 +601,7 @@ function Send-DiscordNotificationForServiceRestart {
         -footer @{ text = "Auto Recovery" }
 }
 
-function Start-ProcessProject {
+function Restart-Project {
     param (
         [Parameter(Mandatory)][PSCustomObject]$project
     )
@@ -612,33 +612,33 @@ function Start-ProcessProject {
         Summary   = ""
     }
 
-
     Write-Info "➡️ Restarting $($project.Name)..."
 
     Invoke-DockerComposeRestart $project.ComposeFile
 
     Start-Sleep -Seconds 10
 
-    $allHealthy = $true
+    $unhealthyContainers = @()
 
     $project.Containers | ForEach-Object {
         $name = $_.Name.Trim()
 
-        if (-not (Test-ServiceHealth -containerName $name)) {
+        if (-not (Wait-ForHealthy -name $name -maxWait 120)) {
             Write-Error "`t❌ Unhealthy Container After Restart: $name"
 
-            $allHealthy = $false
+            $unhealthyContainers += $name
         }
     }
 
-    if ($allHealthy) {
+    if ($unhealthyContainers.Count -eq 0) {
         Write-Info "`t✅ All Services Healthy..."
-
+        
         $result.Summary = " - ${project.Name}: ✅ All Services Healthy."
     } else {
-        Write-Warning "`t⚠️ Some Services Failed Health Checks..."
-
-        $result.Summary = " - ${project.Name}: ⚠️ Some Services Failed Health Checks."
+        Write-Warning "`t⚠️ Services Unhealthy..."
+        
+        $unhealthyList = $unhealthyContainers -join "`n  - "
+        $result.Summary = " - ${project.Name}: ⚠️ Services Unhealthy:`n  - $unhealthyList."
     }
 
     return [PSCustomObject]$result
@@ -660,8 +660,8 @@ function Start-Update {
         $skippedCount = 0
         $summary = ""
 
-        foreach ($project in Get-DockerComposeProjects) {
-            $result = Start-ProcessProject $project
+        foreach ($project in Get-ProjectsWithUpdatedImages) {
+            $result = Restart-Project $project
 
             if ($result.Processed) {
                 $processedCount++
@@ -737,7 +737,7 @@ function Start-Watchdog {
                 $status = $e?.status
 
                 if ($status -eq "health_status: unhealthy" -and $container) {
-                    Restart-Unhealthy -Container $container -dependenciesMap $dependenciesMap
+                    Restart-Unhealthy -container $container -dependenciesMap $dependenciesMap
                 }
             } catch {
                 Write-Error "⚠️ Failed to Parse Event: $_"
@@ -767,7 +767,11 @@ function Test-ServiceHealth {
         [string]$containerName
     )
 
-    $status = (& docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' $containerName) 2>$null
+    try {
+        $status = (& docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' $containerName) 2>$null
+    } catch {
+        $status = "notfound"
+    }
 
     return $status -eq 'healthy' -or $status -eq 'running'
 }
@@ -778,30 +782,23 @@ function Wait-ForHealthy {
         [int]$maxWait = 60
     )
 
-    if (-not (Test-ContainerExists -name $name)) {
+    if (-not (Test-ContainerExists $name)) {
         Write-Warning "⚠️ Container '$name' Does Not Exist. Cannot Check Health."
-        
+
         return $false
     }
 
     $waited = 0
-
     while ($waited -lt $maxWait) {
-        try {
-            $health = & docker inspect --format='{{.State.Health.Status}}' $name 2>$null
-        } catch {
-            $health = ""
-        }
-
-        if ($health -eq "healthy") {
+        if (Test-ServiceHealth $name) {
             Write-Info "$name is Healthy."
 
             return $true
         }
+        
+        Start-Sleep -Seconds 10
 
-        Start-Sleep -Seconds 5
-
-        $waited += 5
+        $waited += 10
     }
 
     Write-Warning "⚠️ $name Did Not Become Healthy in $maxWait Seconds."
@@ -855,7 +852,7 @@ Export-ModuleMember `
     Confirm-PreflightCheck, `
     Convert-ToCapitalCase, `
     Get-Config, `
-    Get-DockerComposeProjects, `
+    Get-ProjectsWithUpdatedImages, `
     Get-Lock, `
     Get-TimeStamp, `
     Install-Updater, `
@@ -868,7 +865,7 @@ Export-ModuleMember `
     Restart-Unhealthy, `
     Send-DiscordNotification, `
     Set-APIConfig,
-    Start-ProcessProject, `
+    Restart-Project, `
     Start-Update, `
     Start-Watchdog, `
     Test-ContainerExists, `

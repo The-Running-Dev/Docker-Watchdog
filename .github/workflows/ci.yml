@@ -23,7 +23,7 @@ jobs:
           fetch-depth: 0
 
       - name: Container CI
-        run: docker-ci
+        run: container-ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RepositoryToken: ${{ secrets.GITHUBPACKAGESTOKEN }}

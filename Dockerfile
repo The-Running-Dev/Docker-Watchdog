@@ -48,6 +48,7 @@ RUN apt-get update && \
         powershell \
         cron \
         locales \
+        tzdata \
         docker.io \
         docker-compose-plugin \
         jq \

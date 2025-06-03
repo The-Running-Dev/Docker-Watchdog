@@ -1,8 +1,17 @@
 #!/usr/bin/env pwsh
+$ErrorActionPreference = "Stop"
 
 $gunicorn = "/opt/venv/bin/gunicorn"
 
-$ErrorActionPreference = "Stop"
+if ($env:TZ) {
+    $zoneinfo = "/usr/share/zoneinfo/$($env:TZ)"
+
+    if (Test-Path $zoneinfo) {
+        Remove-Item -Force /etc/localtime
+        Copy-Item $zoneinfo /etc/localtime
+        Set-Content /etc/timezone $env:TZ
+    }
+}
 
 Import-Module "$PSScriptRoot/watchdog.psm1"
 
