@@ -295,7 +295,7 @@ function Get-Lock {
     New-Item -ItemType File -Path $script:config.LockFilePath | Out-Null
 
     Register-EngineEvent PowerShell.Exiting -Action {
-        Remove-Item -Path $script:config.LockFilePath -Force
+        Remove-Lock
     } | Out-Null
 }
 
@@ -533,7 +533,7 @@ function Read-ConfigFile {
 }
 
 function Remove-Lock {
-    Remove-Item -Path $script:config.LockFilePath -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path $script:config.LockFilePath -Force
 }
 
 function Get-DiscordTimestamp {
@@ -697,9 +697,6 @@ function Start-Update {
 function Start-Watchdog {
     Write-Log "🐶 Starting Watchdog Monitor, Notifications: $($script:config.SendMonitorNotifications)..."
 
-    $lockPath = $script:config.LockFilePath
-    $dependenciesMap = $script:config.ContainerDependencies
-
     $dockerArgs = @(
         "events",
         "--filter", "event=health_status",
@@ -709,16 +706,16 @@ function Start-Watchdog {
 
     try {
         & docker @dockerArgs | ForEach-Object {
-            $maxWaitSeconds = 600
+            $maxWaitSeconds = 1200
             $waitedSeconds = 0
 
-            while (Test-Path $lockPath) {
+            while (Test-Path $script:config.LockFilePath) {
                 Write-Log "⏸ Watchdog Paused — Lock File Detected — Waiting..."
                 Start-Sleep -Seconds 30
                 $waitedSeconds += 30
 
                 if ($waitedSeconds -ge $maxWaitSeconds) {
-                    Write-Warning "⏱️ Lock File Still Present After 10 Minutes, Skipping Event..."
+                    Write-Warning "⏱️ Lock File Still Present After $($maxWaitSeconds / 60) Minutes, Skipping Event..."
 
                     break
                 }
@@ -736,7 +733,7 @@ function Start-Watchdog {
                 $status = $e?.status
 
                 if ($status -eq "health_status: unhealthy" -and $container) {
-                    Restart-Unhealthy -container $container -dependenciesMap $dependenciesMap
+                    Restart-Unhealthy -container $container -dependenciesMap $script:config.ContainerDependencies
                 }
             } catch {
                 Write-Error "⚠️ Failed to Parse Event: $_"
