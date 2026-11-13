@@ -45,7 +45,7 @@ describe('loadConfig', () => {
         SendMonitorNotifications: 'off',
         IncludeProjects: 'a, b,,c',
         ExcludeProjects: '["x"]',
-        ContainerDependencies: '{"app":"db"}',
+        ContainerDependencies: '{"vpn":["torrents","news"],"db":"app"}',
         DiscordWebhookUrl: 'https://example.com/hook',
       },
     });
@@ -54,7 +54,7 @@ describe('loadConfig', () => {
       SendMonitorNotifications: false,
       IncludeProjects: ['a', 'b', 'c'],
       ExcludeProjects: ['x'],
-      ContainerDependencies: { app: 'db' },
+      ContainerDependencies: { vpn: ['torrents', 'news'], db: ['app'] },
       DiscordWebhookUrl: '',
     });
   });
@@ -62,6 +62,7 @@ describe('loadConfig', () => {
   it('fails clearly on bad input', () => {
     expect(() => loadConfig({ configFile, env: { ContainerDependencies: '{nope' } })).toThrow(/^Invalid configuration/);
     expect(() => loadConfig({ configFile, env: { JwtExpiresIn: 'forever' } })).toThrow(/JwtExpiresIn/);
+    expect(() => loadConfig({ configFile, env: { CronSchedule: 'daily' } })).toThrow(/CronSchedule/);
     expect(() => loadConfig({ configFile: join(tree.root, 'bad.json'), env: {} })).toThrow(/expected a JSON object/);
   });
 });

@@ -43,3 +43,32 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  docker:
+    name: Engine Against Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Set Up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set Up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Show Docker Versions
+        run: |
+          docker version
+          docker compose version
+
+      - name: Test Against Docker
+        run: pnpm test:docker

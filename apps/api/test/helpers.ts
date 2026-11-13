@@ -10,7 +10,23 @@ import { configureApp } from '../src/app.setup.js';
 import { appConfigSchema, type AppConfig } from '../src/config/app-config.schema.js';
 import { ConfigService } from '../src/config/config.service.js';
 import { CommandRunner, type CommandOptions, type CommandResult } from '../src/docker/command-runner.service.js';
-import { COMPOSE_WORKING_DIR_LABEL, DockerService } from '../src/docker/docker.service.js';
+import {
+  COMPOSE_WORKING_DIR_LABEL,
+  DockerService,
+  splitImage,
+  type ContainerImage,
+} from '../src/docker/docker.service.js';
+import { ENGINE_TIMINGS, type EngineTimings } from '../src/engine/engine-timings.js';
+
+/** Short waits, so health and lock waits finish within a test. */
+export const TEST_TIMINGS: EngineTimings = {
+  settleMs: 0,
+  updateHealthTimeoutMs: 100,
+  monitorHealthTimeoutMs: 100,
+  healthPollMs: 10,
+  lockWaitMs: 200,
+  lockPollMs: 10,
+};
 
 export interface RunnerCall {
   file: string;
@@ -18,10 +34,12 @@ export interface RunnerCall {
   cwd?: string;
 }
 
-/** Records every command; answers with queued results, else success. */
+/** Records every command; answers with queued results, else onRun's answer, else success. */
 export class FakeRunner {
   readonly calls: RunnerCall[] = [];
   private readonly results: CommandResult[] = [];
+  /** Side effects and answers by command, e.g. a pull that adds an image to FakeDocker. */
+  onRun?: (call: RunnerCall) => CommandResult | void;
 
   failNext(stderr: string, code = 1): this {
     this.results.push({ code, stdout: '', stderr });
@@ -30,15 +48,25 @@ export class FakeRunner {
   }
 
   async run(file: string, args: string[], options: CommandOptions = {}): Promise<CommandResult> {
-    this.calls.push({ file, args, cwd: options.cwd });
+    const call = { file, args, cwd: options.cwd };
 
-    return this.results.shift() ?? { code: 0, stdout: '', stderr: '' };
+    this.calls.push(call);
+
+    return this.results.shift() ?? this.onRun?.(call) ?? { code: 0, stdout: '', stderr: '' };
   }
 }
+
+export const OLD_IMAGE = 'sha256:old';
 
 export class FakeDocker {
   containers: DockerContainer[] = [];
   engineVersion: string | null = '29.0.0';
+  /** Local images by reference. */
+  images: Record<string, string> = {};
+  /** Health (or state) by container name; the container's State when not set. */
+  health: Record<string, string> = {};
+  /** References the registry has a newer image for. */
+  newerInRegistry = new Set<string>();
 
   async version(): Promise<string | null> {
     return this.engineVersion;
@@ -55,11 +83,33 @@ export class FakeDocker {
   async findContainer(name: string): Promise<DockerContainer | null> {
     return this.containers.find((c) => c.Name === name) ?? null;
   }
+
+  /** Every container runs OLD_IMAGE, created from Image:Version. */
+  async containerImage(id: string): Promise<ContainerImage | null> {
+    const found = this.containers.find((c) => c.Id === id);
+
+    if (!found) return null;
+
+    return { reference: found.Version ? `${found.Image}:${found.Version}` : found.Image, imageId: OLD_IMAGE };
+  }
+
+  async containerHealth(name: string): Promise<string | null> {
+    return this.health[name] ?? (await this.findContainer(name))?.State ?? null;
+  }
+
+  async imageId(reference: string): Promise<string | null> {
+    return this.images[reference] ?? null;
+  }
+
+  async hasNewerImage(reference: string): Promise<boolean> {
+    return this.newerInRegistry.has(reference);
+  }
 }
 
 export function container(
   name: string,
   compose?: { project: string; service: string; workingDir?: string },
+  image = 'nginx:latest',
 ): DockerContainer {
   const labels: Record<string, string> = compose
     ? {
@@ -69,11 +119,13 @@ export function container(
       }
     : {};
 
+  const { image: repository, version } = splitImage(image);
+
   return {
     Id: `id-${name}`,
     Name: name,
-    Image: 'nginx',
-    Version: 'latest',
+    Image: repository,
+    Version: version,
     Labels: labels,
     CreatedAt: new Date(0).toISOString(),
     Status: 'Up 1 minute',
@@ -108,7 +160,14 @@ export interface TestApp {
 export async function createTestApp(config: Partial<Record<keyof AppConfig, unknown>> = {}): Promise<TestApp> {
   const runner = new FakeRunner();
   const docker = new FakeDocker();
-  const values = appConfigSchema.parse(config);
+  // No schedule and no update at startup unless a test asks for them. The default /projects
+  // can be a real, large directory on a developer machine (D:\Projects on Windows).
+  const values = appConfigSchema.parse({
+    UpdaterCronJob: false,
+    UpdateOnStart: false,
+    ProjectsDirectory: join(tmpdir(), 'watchdog-no-projects'),
+    ...config,
+  });
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(ConfigService)
@@ -117,6 +176,8 @@ export async function createTestApp(config: Partial<Record<keyof AppConfig, unkn
     .useValue(runner)
     .overrideProvider(DockerService)
     .useValue(docker)
+    .overrideProvider(ENGINE_TIMINGS)
+    .useValue(TEST_TIMINGS)
     .compile();
 
   const app = moduleRef.createNestApplication({ logger: false });
