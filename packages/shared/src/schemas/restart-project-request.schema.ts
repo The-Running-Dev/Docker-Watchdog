@@ -10,8 +10,8 @@ export const restartProjectRequestSchema = z.object({
     projectId: z.string().trim().min(1),
     additionalArgs: z
       .union([z.string(), z.array(z.string())])
-      .optional()
-      .transform((args) => (args === undefined ? [] : Array.isArray(args) ? args : [args]))
+      .nullish()
+      .transform((args) => (args == null ? [] : Array.isArray(args) ? args : [args]))
       .refine((args) => args.every((a) => a.startsWith('-')), {
         message: "Expected a list of options for 'docker compose up'",
       }),

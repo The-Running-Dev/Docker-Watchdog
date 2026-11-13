@@ -4,5 +4,6 @@ export * from './docker-container.model.js';
 export * from './info.model.js';
 export * from './log-entry.model.js';
 export * from './log-level.enum.js';
+export * from './restart.model.js';
 export * from './webhook-event.enum.js';
 export * from './webhook-response.model.js';
