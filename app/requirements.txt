@@ -1,4 +1,0 @@
-gunicorn
-flask
-requests
-pytz

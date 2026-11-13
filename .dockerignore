@@ -1,12 +1,13 @@
-.git
-.gitignore
-__pycache__
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/node_modules
+# Only the workspace sources go into the build; dependencies and builds are made inside it.
+**
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!tsconfig.base.json
+!apps/api/**
+!apps/ui/**
+!packages/shared/**
 **/node_modules
 **/dist
 **/coverage
+**/*.tsbuildinfo
