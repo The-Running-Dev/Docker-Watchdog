@@ -13,3 +13,9 @@ deploy/.terraform/
 deploy/backend.hcl
 deploy/*.tfvars.json
 deploy/plan.bin
+
+# Node workspace
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
