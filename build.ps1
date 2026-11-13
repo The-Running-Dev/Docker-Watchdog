@@ -1,26 +1,25 @@
-# Validate that the GitHub token is set
+# Builds the image and pushes it to GHCR by hand. CI (.github/workflows/image.yml) does this on every push to main.
 if (-not $env:PackagesToken -or [string]::IsNullOrWhiteSpace($env:PackagesToken)) {
     Write-Host "❌ Packages Token is required..."
 
     exit 1
 }
 
-$imageTag = "watchdog"
-$ghcrImageTag = "ghcr.io/the-running-dev/$($imageTag):latest"
+$imageName = "subzerodev-watchdog"
+$ghcrImageTag = "ghcr.io/the-running-dev/$($imageName):latest"
 $gitHubUsername = "the-running-dev"
+$buildDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 
-# Build the Docker image
 Write-Host "🐳 Building the Docker image..."
-& docker build -t $imageTag .
+& docker build --build-arg "BUILD_DATE=$buildDate" -t $imageName .
 
-# Tag the image for GitHub Container Registry
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 Write-Host "🏷️ Tagging the Docker image for GitHub Container Registry..."
-& docker tag $imageTag $ghcrImageTag
+& docker tag $imageName $ghcrImageTag
 
-# Authenticate with GitHub Container Registry
 Write-Host "🔐 Authenticating with GitHub Container Registry..."
 $env:PackagesToken | & docker login ghcr.io -u $gitHubUsername --password-stdin
 
-# Push the image
 Write-Host "🚀 Pushing the Docker image to GitHub Container Registry..."
 & docker push $ghcrImageTag

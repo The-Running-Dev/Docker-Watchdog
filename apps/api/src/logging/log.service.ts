@@ -1,17 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { LogLevel, type LogEntry } from '@subzerodev/watchdog-shared';
+import { LogLevel, type LogEntry, type LogPage } from '@subzerodev/watchdog-shared';
 import { WatchdogEvents } from '../events.js';
 
 export const LOG_CAPACITY = 1000;
 export const MAX_PAGE_SIZE = 500;
-
-export interface LogPage {
-  total: number;
-  page: number;
-  pageCount: number;
-  data: LogEntry[];
-}
 
 /** Writes to the console and keeps the last LOG_CAPACITY entries for the UI. */
 @Injectable()

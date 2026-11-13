@@ -1,3 +1,4 @@
+export * from './auth-status.model.js';
 export * from './containers.model.js';
 export * from './docker-compose.model.js';
 export * from './docker-container.model.js';

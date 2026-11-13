@@ -1,35 +1,17 @@
-import AppBar from '@mui/material/AppBar';
-import Container from '@mui/material/Container';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import type { Info } from '@subzerodev/watchdog-shared';
-import { useEffect, useState } from 'react';
+import CssBaseline from '@mui/material/CssBaseline';
+import { ThemeProvider } from '@mui/material/styles';
+import type { RouterProviderProps } from 'react-router';
+import { RouterProvider } from 'react-router';
+import { Toaster } from './components/Toaster';
+import { theme } from './theme';
 
-export function App() {
-  const [info, setInfo] = useState<Info | null>(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    fetch('/api/info')
-      .then((res) => (res.ok ? (res.json() as Promise<Info>) : Promise.reject(new Error(res.statusText))))
-      .then(setInfo)
-      .catch(() => setError(true));
-  }, []);
-
+/** The theme, the pages and the toasts; main.tsx passes a browser router, tests a memory one. */
+export function App({ router }: { router: RouterProviderProps['router'] }) {
   return (
-    <>
-      <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" component="h1">
-            SubZeroDev Watchdog
-          </Typography>
-        </Toolbar>
-      </AppBar>
-      <Container sx={{ py: 3 }}>
-        <Typography role="status">
-          {error ? 'API unreachable' : info ? `API version ${info.version}` : 'Connecting to the API…'}
-        </Typography>
-      </Container>
-    </>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <RouterProvider router={router} />
+      <Toaster />
+    </ThemeProvider>
   );
 }

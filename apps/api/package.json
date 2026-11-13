@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "description": "Watchdog API: health monitor, updater, project management and webhook endpoints",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "nest build",
     "start": "node dist/main.js",
@@ -19,6 +22,7 @@
     "@nestjs/platform-express": "^12.5.0",
     "@nestjs/platform-socket.io": "^12.5.0",
     "@nestjs/schedule": "^12.0.4",
+    "@nestjs/serve-static": "^12.1.1",
     "@nestjs/websockets": "^12.5.0",
     "@subzerodev/watchdog-shared": "workspace:*",
     "cron": "^4.4.0",
