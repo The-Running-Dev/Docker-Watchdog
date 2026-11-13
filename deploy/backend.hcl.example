@@ -1,0 +1,3 @@
+bucket    = "subzerodev-tofu-state"
+key       = "apps/watchdog.tfstate"
+endpoints = { s3 = "https://<cloudflare-account-id>.r2.cloudflarestorage.com" }

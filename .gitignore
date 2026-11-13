@@ -8,3 +8,8 @@ build-local.ps1
 .resolved-version
 
 .nuke/temp/
+
+deploy/.terraform/
+deploy/backend.hcl
+deploy/*.tfvars.json
+deploy/plan.bin
