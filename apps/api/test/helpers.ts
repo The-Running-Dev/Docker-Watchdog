@@ -18,6 +18,7 @@ import {
   type ContainerImage,
 } from '../src/docker/docker.service.js';
 import { ENGINE_TIMINGS, type EngineTimings } from '../src/engine/engine-timings.js';
+import { PreflightService } from '../src/engine/preflight.service.js';
 
 /** Short waits, so health and lock waits finish within a test. */
 export const TEST_TIMINGS: EngineTimings = {
@@ -191,7 +192,23 @@ export async function createTestApp(
   const app = moduleRef.createNestApplication({ logger: false });
 
   configureApp(app);
+
+  // The updater starts a preflight check in the background at bootstrap; wait for it, so its
+  // `docker compose version` call cannot land in the first test's recorded commands.
+  const preflight = moduleRef.get(PreflightService);
+  const check = preflight.check.bind(preflight);
+  const checks: Promise<boolean>[] = [];
+
+  preflight.check = () => {
+    const result = check();
+
+    checks.push(result);
+
+    return result;
+  };
+
   await app.init();
+  await Promise.all(checks);
 
   return { app, runner, docker, config: values };
 }
