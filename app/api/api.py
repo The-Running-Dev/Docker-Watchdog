@@ -10,8 +10,40 @@ from api.log_config import setup_logger
 SEND_NOTIFICATIONS = os.getenv("SendAPINotifications", "true").lower() in ("1", "true", "yes", "on")
 DISCORD_WEBHOOK_URL = os.getenv("DiscordWebhookUrl")
 TIME_ZONE = os.getenv("TimeZone", "UTC")
+PROJECTS_DIRECTORY = os.getenv("ProjectsDirectory", "/projects")
+
+# File names `docker compose` loads automatically when run from a project directory
+DEFAULT_COMPOSE_FILES = ("compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml")
 
 log = setup_logger(__name__)
+
+
+def find_project(project_name: str):
+    """Locate a project's directory and compose files under PROJECTS_DIRECTORY.
+
+    Projects are identified by their directory name, matching how watchdog.psm1
+    discovers them. Returns (directory, compose_file_args) or (None, None).
+    compose_file_args is empty when a default compose file exists, so compose
+    loads it (plus any override file) on its own.
+    """
+    for root, _dirs, files in os.walk(PROJECTS_DIRECTORY):
+        if os.path.basename(root) != project_name:
+            continue
+
+        if any(f in files for f in DEFAULT_COMPOSE_FILES):
+            return root, []
+
+        named = sorted(f for f in files if f.startswith("docker-compose") and f.endswith((".yml", ".yaml")))
+
+        if named:
+            file_args = []
+
+            for f in named:
+                file_args += ["--file", f]
+
+            return root, file_args
+
+    return None, None
 
 app = Flask(__name__)
 
@@ -125,26 +157,39 @@ def restart_project():
 
     event_data = data["data"]
     project_name = event_data.get("projectId")
-    additional_args = event_data.get("additionalArgs", [])
+    additional_args = event_data.get("additionalArgs") or []
     is_test = event_data.get("isTest", False)
-    project_dir = "."
 
-    if not project_name:
+    if not project_name or not isinstance(project_name, str):
         log.warning("No 'projectId' Provided in Payload.")
 
         return jsonify({"error": "No 'projectId' Provided in Payload."}), 400
 
+    if isinstance(additional_args, str):
+        additional_args = [additional_args]
+
+    # additionalArgs are options for `docker compose up` (e.g. --remove-orphans)
+    if not isinstance(additional_args, list) or not all(isinstance(a, str) and a.startswith("-") for a in additional_args):
+        log.warning(f"Invalid 'additionalArgs': {additional_args}")
+
+        return jsonify({"error": "Invalid 'additionalArgs': Expected a List of Options for 'docker compose up'."}), 400
+
+    project_dir, file_args = find_project(project_name)
+
+    if project_dir is None:
+        log.warning(f"Project '{project_name}' Not Found in {PROJECTS_DIRECTORY}.")
+
+        return jsonify({
+            "error": "project_not_found",
+            "details": f"No Compose File Found for Project '{project_name}' in {PROJECTS_DIRECTORY}"
+        }), 404
+
     if is_test:
         log.info("Test Mode Enabled, Skipping Restart.")
 
-        return jsonify({"status": f"Test Mode: Would Restart Project '{project_name}' (additionalArgs={additional_args})"}), 200
+        return jsonify({"status": f"Test Mode: Would Restart Project '{project_name}' in {project_dir} (additionalArgs={additional_args})"}), 200
 
-    compose_base = ["docker", "compose", "-p", project_name]
-
-    if additional_args and isinstance(additional_args, list):
-        compose_base += additional_args
-    elif additional_args and isinstance(additional_args, str):
-        compose_base += [additional_args]
+    compose_base = ["docker", "compose"] + file_args
 
     # Step 1: docker compose pull
     pull_cmd = compose_base + ["pull"]
@@ -156,7 +201,7 @@ def restart_project():
         return jsonify({"error": "Docker Compose Pull Failed", "details": pull_proc.stderr.strip()}), 500
 
     # Step 2: docker compose up -d
-    up_cmd = compose_base + ["up", "-d"]
+    up_cmd = compose_base + ["up", "-d"] + additional_args
     up_proc = subprocess.run(up_cmd, cwd=project_dir, capture_output=True, text=True)
 
     if up_proc.returncode != 0:
