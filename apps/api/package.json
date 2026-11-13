@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "description": "Watchdog API: health monitor, updater, project management and webhook endpoints",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "nest build",
     "start": "node dist/main.js",
