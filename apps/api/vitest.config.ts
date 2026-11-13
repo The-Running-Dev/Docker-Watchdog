@@ -11,5 +11,7 @@ export default defineConfig({
     include: ['src/**/*.spec.ts', 'test/**/*.spec.ts'],
     // Real-Docker tests run with pnpm test:docker.
     exclude: [...configDefaults.exclude, 'test/docker/**'],
+    // No UI in tests unless a test builds one; ui.spec.ts serves a temporary one.
+    env: { WATCHDOG_UI_PATH: '' },
   },
 });

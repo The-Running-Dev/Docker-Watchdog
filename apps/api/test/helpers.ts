@@ -1,7 +1,8 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, type ModuleMetadata } from '@nestjs/common';
+import { AbstractLoader, ExpressLoader } from '@nestjs/serve-static';
 import { Test } from '@nestjs/testing';
 import { groupByProject } from '../src/docker/docker.service.js';
 import type { Containers, DockerContainer } from '@subzerodev/watchdog-shared';
@@ -157,7 +158,10 @@ export interface TestApp {
   config: AppConfig;
 }
 
-export async function createTestApp(config: Partial<Record<keyof AppConfig, unknown>> = {}): Promise<TestApp> {
+export async function createTestApp(
+  config: Partial<Record<keyof AppConfig, unknown>> = {},
+  imports: NonNullable<ModuleMetadata['imports']> = [],
+): Promise<TestApp> {
   const runner = new FakeRunner();
   const docker = new FakeDocker();
   // No schedule and no update at startup unless a test asks for them. The default /projects
@@ -169,7 +173,7 @@ export async function createTestApp(config: Partial<Record<keyof AppConfig, unkn
     ...config,
   });
 
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+  const moduleRef = await Test.createTestingModule({ imports: [AppModule, ...imports] })
     .overrideProvider(ConfigService)
     .useValue(new ConfigService(values))
     .overrideProvider(CommandRunner)
@@ -178,6 +182,10 @@ export async function createTestApp(config: Partial<Record<keyof AppConfig, unkn
     .useValue(docker)
     .overrideProvider(ENGINE_TIMINGS)
     .useValue(TEST_TIMINGS)
+    // serve-static picks its loader from the HTTP adapter, which a testing module only gets
+    // after compile(); NestFactory.create has it from the start.
+    .overrideProvider(AbstractLoader)
+    .useValue(new ExpressLoader())
     .compile();
 
   const app = moduleRef.createNestApplication({ logger: false });

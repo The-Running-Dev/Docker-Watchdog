@@ -29,10 +29,11 @@ import { DiscordService } from './notifications/discord.service.js';
 import { ProjectsController } from './projects/projects.controller.js';
 import { ProjectsService } from './projects/projects.service.js';
 import { RestartExecutor } from './restart/restart-executor.service.js';
+import { UiModule } from './ui/ui.module.js';
 import { WebhookController } from './webhook/webhook.controller.js';
 
 @Module({
-  imports: [EventEmitterModule.forRoot(), ScheduleModule.forRoot()],
+  imports: [EventEmitterModule.forRoot(), ScheduleModule.forRoot(), UiModule.register()],
   controllers: [
     HealthController,
     InfoController,
