@@ -1,0 +1,21 @@
+# Cloudflare Tunnel connector for watchdog.subzerodev.com. It joins `proxy-net`, where `watchdog` lives, so
+# nothing is published on the host. TUNNEL_TOKEN comes from the stack environment (deploy/, OpenTofu).
+# Layer it over docker-compose.yml.
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:2025.11.1
+    restart: unless-stopped
+    command: [tunnel, --no-autoupdate, run]
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?Set TUNNEL_TOKEN}
+    dns: [1.1.1.1, 9.9.9.9]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+    networks:
+      - proxy-net
+    depends_on:
+      - watchdog

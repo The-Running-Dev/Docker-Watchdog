@@ -1,0 +1,26 @@
+# Watchdog on the VPS, deployed by the `watchdog` Portainer stack (see deploy/). The QNAP file is
+# ../docker-compose.yml. It mounts the Docker socket and /srv, so it can restart and update every
+# Compose project on the host. Layer compose.tunnel.yaml over this file.
+services:
+  watchdog:
+    image: ghcr.io/the-running-dev/watchdog:latest
+    container_name: watchdog
+    restart: always
+    stdin_open: true
+    tty: true
+    dns: [45.90.28.168, 45.90.30.168]
+    environment:
+      TZ: UTC
+      TIME_ZONE: UTC
+      PORT: "80"
+    volumes:
+      - /srv/watchdog/config.overrides.json:/app/config.overrides.json
+      - /srv:/projects
+      - /root/.docker/config.json:/root/.docker/config.json:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - proxy-net
+
+networks:
+  proxy-net:
+    external: true
