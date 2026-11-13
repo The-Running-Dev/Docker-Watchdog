@@ -1,0 +1,6 @@
+ignoredBuiltDependencies:
+  - '@nestjs/core'
+  - '@swc/core'
+  - cpu-features
+  - protobufjs
+  - ssh2

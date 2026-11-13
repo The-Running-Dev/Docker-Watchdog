@@ -1,0 +1,13 @@
+
+.idea/
+coverage/
+node_modules/
+deploy/
+
+.env
+.env.build
+.secrets
+Service.log
+
+src/scripts/set-environment.js
+src/environments/environment.ts

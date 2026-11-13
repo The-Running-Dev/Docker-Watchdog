@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "entryFile": "main",
+  "compilerOptions": {
+    "assets": [
+      {
+        "include": "docker-scripts/**/*.ps1",
+        "outDir": "deploy"
+      }
+    ],
+    "watchAssets": true,
+    "deleteOutDir": true
+  }
+}

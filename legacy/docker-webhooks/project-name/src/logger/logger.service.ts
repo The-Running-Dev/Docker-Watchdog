@@ -1,0 +1,58 @@
+// src/logger/logger.service.ts
+
+import { Injectable } from '@nestjs/common';
+import { createLogger, format, transports, Logger } from 'winston';
+import { TransformableInfo } from 'logform';
+import { format as dateFnsFormat } from 'date-fns';
+import { LogEntry, LogLevel } from '@shared';
+
+@Injectable()
+export class LoggerService {
+    private logger: Logger;
+    private stream: LogEntry[] = [];
+
+    constructor() {
+        this.logger = createLogger({
+            level: 'info',
+            format: format.combine(
+                format.timestamp(),
+                format.printf((info: TransformableInfo) => {
+                    const message = `${dateFnsFormat(new Date(info.timestamp as string), 'yyyy.MM.dd @ HH.mm.ss')} [${info.level}]: ${(info.message as string).replace(/'/g, '')}`;
+                    const data = info.meta ? ` ${JSON.stringify(info.meta)}` : '';
+
+                    return message + data;
+                })
+            ),
+            transports: [
+                new transports.Console(),
+                new transports.File({ filename: 'Service.log' })
+            ]
+        });
+    }
+
+    log(message: string, level: LogLevel, data?: object) {
+        const timestamp = new Date().toISOString();
+        const logMethod = this.logger[level.toLowerCase() as keyof Logger].bind(this.logger);
+        
+        logMethod(message, { meta: data });
+
+        if (data) {
+            message += ` ${JSON.stringify(data)}`;
+        }
+
+        this.addToStream({ timestamp, level, message } as LogEntry);
+    }
+    
+    getStream(): LogEntry[] {
+        return this.stream;
+    }
+
+    private addToStream(logEntry: LogEntry) {
+        this.stream.push(logEntry);
+
+        // Keep the last 1000 log entries
+        if (this.stream.length > 1000) {
+            this.stream.shift();
+        }
+    }
+}

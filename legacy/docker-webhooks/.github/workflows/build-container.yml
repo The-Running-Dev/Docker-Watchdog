@@ -1,0 +1,49 @@
+name: Build and Push
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - src/*/**
+      - .github/workflows/build-container.yml
+
+permissions:
+  packages: write
+  contents: write
+
+jobs:
+  Build-and-Push:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/the-running-dev/barstrad-agent
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUBPACKAGESTOKEN }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Cache Node.js Modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node
+
+      - name: Verify Container Environment
+        run: |
+          echo "Running Custom Agent...
+          Node: $(node -v)
+          NPM: $(npm -v)
+          $(pwsh --version)
+          $(docker --version)
+          "
+
+      - name: Build and Push
+        run: pwsh ./build.ps1
+        env:
+          GitHubPackagesToken: ${{ secrets.GITHUBPACKAGESTOKEN }}

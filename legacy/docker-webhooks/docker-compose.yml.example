@@ -1,0 +1,41 @@
+x-defaultEnvironment: &defaultEnvironment
+  PUID: 1000
+  PGID: 100
+  UMASK: 002
+  TZ: Etc/UTC
+
+x-commonKeys: &commonOptions
+  restart: unless-stopped
+  stdin_open: true
+  tty: true
+
+x-dnsServers: &dnsServers
+  dns:
+    - 45.90.28.29
+    - 45.90.30.29
+
+networks:
+  proxy-network:
+    external: true
+
+services:
+  docker-webhooks:
+    container_name: docker-webhooks
+    image: ghcr.io/the-running-dev/docker-webhooks:latest
+    environment:
+      <<: *defaultEnvironment
+    networks:
+      proxy-network:
+    <<: [*dnsServers, *commonOptions]
+
+  cloudflared:
+    container_name: webhooks-tunnel
+    image: cloudflare/cloudflared:latest
+    environment:
+      - TUNNEL_TOKEN=${CloudflareTunnelToken}
+    command: tunnel run
+    networks:
+      proxy-network:
+    depends_on:
+      - docker-webhooks
+    <<: [*dnsServers, *commonOptions]
