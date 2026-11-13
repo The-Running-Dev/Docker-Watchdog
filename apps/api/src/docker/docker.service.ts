@@ -8,6 +8,7 @@ import { LogService } from '../logging/log.service.js';
 export const COMPOSE_PROJECT_LABEL = 'com.docker.compose.project';
 export const COMPOSE_SERVICE_LABEL = 'com.docker.compose.service';
 export const COMPOSE_WORKING_DIR_LABEL = 'com.docker.compose.project.working_dir';
+export const HEALTHY_STATES: ReadonlySet<string> = new Set(['healthy', 'running']);
 const COMPOSE_CONFIG_FILES_LABEL = 'com.docker.compose.project.config_files';
 
 const RECONNECT_DELAY_MS = 5_000;
@@ -61,6 +62,54 @@ export class DockerService implements OnApplicationBootstrap, OnApplicationShutd
     return containers.find((container) => container.Name === name) ?? null;
   }
 
+  /** The image reference a container was created from and the ID of the image it runs, or null. */
+  async containerImage(id: string): Promise<ContainerImage | null> {
+    try {
+      const info = await this.docker.getContainer(id).inspect();
+
+      return { reference: info.Config.Image, imageId: info.Image };
+    } catch {
+      return null;
+    }
+  }
+
+  /** The health check status, else the state ("running", "exited"...), or null when there is no such container. */
+  async containerHealth(name: string): Promise<string | null> {
+    try {
+      const { State } = await this.docker.getContainer(name).inspect();
+
+      return State.Health?.Status || State.Status;
+    } catch {
+      return null;
+    }
+  }
+
+  /** The ID of the local image with this reference, or null when there is none. */
+  async imageId(reference: string): Promise<string | null> {
+    try {
+      return (await this.docker.getImage(reference).inspect()).Id;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * True when the registry has a different image for the reference than the local one, found
+   * without pulling. Assumes an update when either side cannot be read, as the legacy updater did.
+   */
+  async hasNewerImage(reference: string): Promise<boolean> {
+    try {
+      const [remote, local] = await Promise.all([
+        this.docker.getImage(reference).distribution(),
+        this.docker.getImage(reference).inspect(),
+      ]);
+
+      return !(local.RepoDigests ?? []).some((digest) => digest.endsWith(`@${remote.Descriptor.digest}`));
+    } catch {
+      return true;
+    }
+  }
+
   onApplicationBootstrap(): void {
     void this.watchEvents();
   }
@@ -79,10 +128,20 @@ export class DockerService implements OnApplicationBootstrap, OnApplicationShutd
     try {
       const stream = await this.docker.getEvents({ filters: { type: ['container'] } });
 
+      const lines = new EventLines();
+
       this.events = stream;
       this.log.info('Watching Docker container events');
 
-      stream.on('data', () => this.scheduleChange());
+      stream.on('data', (chunk: Buffer | string) => {
+        this.scheduleChange();
+
+        for (const event of lines.push(chunk.toString())) {
+          const name = unhealthyContainer(event);
+
+          if (name) this.emitter.emit(WatchdogEvents.ContainerUnhealthy, name);
+        }
+      });
       stream.on('error', (error: Error) => this.log.warn(`Docker event stream failed: ${error.message}`));
       stream.on('close', () => this.reconnect());
     } catch (error) {
@@ -110,6 +169,49 @@ export class DockerService implements OnApplicationBootstrap, OnApplicationShutd
     }, CHANGE_DEBOUNCE_MS);
     this.changeTimer.unref();
   }
+}
+
+export interface ContainerImage {
+  /** As given to compose or `docker run`, e.g. "nginx:1.27". */
+  reference: string;
+  imageId: string;
+}
+
+export interface EngineEvent {
+  Type?: string;
+  Action?: string;
+  status?: string;
+  Actor?: { ID?: string; Attributes?: Record<string, string> };
+}
+
+/** The engine sends one JSON object per line; a chunk can end part way through one. */
+export class EventLines {
+  private rest = '';
+
+  push(text: string): EngineEvent[] {
+    const lines = (this.rest + text).split('\n');
+
+    this.rest = lines.pop() ?? '';
+
+    return lines.flatMap((line) => {
+      if (!line.trim()) return [];
+
+      try {
+        return [JSON.parse(line) as EngineEvent];
+      } catch {
+        return [];
+      }
+    });
+  }
+}
+
+/** The container name when the event is a health check turning unhealthy. */
+export function unhealthyContainer(event: EngineEvent): string | null {
+  const action = (event.Action ?? event.status ?? '').trim();
+
+  if (event.Type !== 'container' || action !== 'health_status: unhealthy') return null;
+
+  return event.Actor?.Attributes?.name ?? null;
 }
 
 export function toDockerContainer(info: Docker.ContainerInfo): DockerContainer {

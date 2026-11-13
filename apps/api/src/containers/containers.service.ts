@@ -1,4 +1,3 @@
-import { basename } from 'node:path';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type {
   ContainerRestartOptions,
@@ -6,9 +5,8 @@ import type {
   RestartResult,
   RestartSource,
 } from '@subzerodev/watchdog-shared';
-import { COMPOSE_WORKING_DIR_LABEL, DockerService } from '../docker/docker.service.js';
+import { DockerService } from '../docker/docker.service.js';
 import { containerRestartSteps, serviceRecreateSteps, type CommandStep } from '../projects/compose-commands.js';
-import type { LocatedProject } from '../projects/project-locator.js';
 import { ProjectsService } from '../projects/projects.service.js';
 import { RestartExecutor, type RestartRequest } from '../restart/restart-executor.service.js';
 
@@ -55,27 +53,11 @@ export class ContainersService {
 
   private async steps(container: DockerContainer, options: ContainerRestartOptions): Promise<CommandStep[]> {
     if (options.mode === 'recreate' && container.Service) {
-      const project = await this.composeProject(container);
+      const project = await this.projects.locateFor(container);
 
       if (project) return serviceRecreateSteps(project, container.Service, options.pull);
     }
 
     return containerRestartSteps(container.Name);
-  }
-
-  /** By project name, then by the name of the directory compose ran in. */
-  private async composeProject(container: DockerContainer): Promise<LocatedProject | null> {
-    const workingDir = container.Labels[COMPOSE_WORKING_DIR_LABEL];
-    const candidates = [container.Project, workingDir && basename(workingDir.replace(/[\\/]+$/, ''))];
-
-    for (const candidate of new Set(candidates)) {
-      if (!candidate) continue;
-
-      const project = await this.projects.locate(candidate);
-
-      if (project) return project;
-    }
-
-    return null;
   }
 }

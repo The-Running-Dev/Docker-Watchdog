@@ -1,0 +1,29 @@
+# Two services with health checks, for the real-Docker tests (pnpm test:docker).
+# web is healthy while /tmp/ok exists; its command creates it again on every start.
+name: watchdog-it
+
+services:
+  web:
+    image: busybox:1.37.0
+    container_name: watchdog-it-web
+    init: true
+    command: ['sh', '-c', 'touch /tmp/ok && exec sleep 3600']
+    healthcheck:
+      test: ['CMD', 'test', '-f', '/tmp/ok']
+      interval: 1s
+      timeout: 1s
+      retries: 2
+
+  app:
+    image: busybox:1.37.0
+    container_name: watchdog-it-app
+    init: true
+    command: ['sleep', '3600']
+    healthcheck:
+      test: ['CMD', 'true']
+      interval: 1s
+      timeout: 1s
+      retries: 2
+    depends_on:
+      web:
+        condition: service_healthy

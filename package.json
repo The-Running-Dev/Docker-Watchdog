@@ -9,6 +9,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
+    "test:docker": "pnpm --filter @subzerodev/watchdog-api test:docker",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",
     "format": "prettier --write apps packages",

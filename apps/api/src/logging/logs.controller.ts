@@ -1,5 +1,6 @@
 import { Controller, DefaultValuePipe, Get, ParseIntPipe, Query } from '@nestjs/common';
-import { LogService, type LogPage } from './log.service.js';
+import type { LogPage } from '@subzerodev/watchdog-shared';
+import { LogService } from './log.service.js';
 
 @Controller('logs')
 export class LogsController {

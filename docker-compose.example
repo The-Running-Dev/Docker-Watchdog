@@ -10,7 +10,7 @@ x-dnsServers: &dnsServers
 
 services:
   watchdog:
-    image: ghcr.io/the-running-dev/watchdog:latest
+    image: ghcr.io/the-running-dev/subzerodev-watchdog:latest
     container_name: watchdog
     environment:
       - TZ=${TIME_ZONE:-UTC}

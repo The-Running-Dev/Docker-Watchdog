@@ -1,3 +1,4 @@
+import { validateCronExpression } from 'cron';
 import { z } from 'zod';
 
 const TRUE_VALUES = ['1', 'true', 'yes', 'on'];
@@ -30,11 +31,28 @@ const DISCORD_WEBHOOK = /^https:\/\/(discord|discordapp)\.com\/api\/webhooks\//;
 export const appConfigSchema = z.object({
   ProjectsDirectory: z.string().min(1).default('/projects'),
   CronFilePath: z.string().default('/etc/cron.d/watchdog'),
-  CronSchedule: z.string().default('0 4 * * *'),
-  /** Container name to the name of the container it depends on. */
+  /** When the updater runs (cron syntax, in TimeZone). */
+  CronSchedule: z
+    .string()
+    .default('0 4 * * *')
+    .refine((value) => validateCronExpression(value).valid, 'Expected a cron expression such as "0 4 * * *"'),
+  /**
+   * Container name to the containers that depend on it. When the monitor restarts the
+   * container and it becomes healthy again, its dependents are restarted too.
+   */
   ContainerDependencies: z.preprocess(
     (value) => (typeof value === 'string' ? JSON.parse(value || '{}') : value),
-    z.record(z.string(), z.string()).default({}),
+    z
+      .record(z.string(), z.union([z.string(), z.array(z.string())]))
+      .default({})
+      .transform((dependencies) =>
+        Object.fromEntries(
+          Object.entries(dependencies).map(([name, dependents]) => [
+            name,
+            (Array.isArray(dependents) ? dependents : [dependents]).filter(Boolean),
+          ]),
+        ),
+      ),
   ),
   /** Anything that is not a Discord webhook URL is treated as unset, as before. */
   DiscordWebhookUrl: z.preprocess(
@@ -50,7 +68,12 @@ export const appConfigSchema = z.object({
   SendMonitorNotifications: flag(true),
   SendAPINotifications: flag(true),
   UpdaterTest: flag(false),
+  /** Run the updater on CronSchedule. */
   UpdaterCronJob: flag(true),
+  /** Run the updater once when the watchdog starts. */
+  UpdateOnStart: flag(true),
+  /** Remove every image no container uses after an update. */
+  PruneAfterUpdate: flag(true),
   UpdaterNotificationTitle: z.string().default('Containers Update'),
   TimeZone: z.string().default('UTC'),
 

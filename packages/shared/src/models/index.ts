@@ -1,3 +1,4 @@
+export * from './auth-status.model.js';
 export * from './containers.model.js';
 export * from './docker-compose.model.js';
 export * from './docker-container.model.js';
@@ -7,3 +8,4 @@ export * from './log-level.enum.js';
 export * from './restart.model.js';
 export * from './webhook-event.enum.js';
 export * from './webhook-response.model.js';
+export * from './update-run.model.js';

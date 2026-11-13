@@ -1,3 +1,3 @@
-ImageTag = watchdog
+ImageTag = subzerodev-watchdog
 Repository = ghcr.io/the-running-dev
 RepositoryUsername = the-running-dev

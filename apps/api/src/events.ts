@@ -4,6 +4,10 @@ export const WatchdogEvents = {
   Log: 'watchdog.log',
   /** Payload: Containers[] */
   ContainersChanged: 'watchdog.containers',
-  /** Payload: RestartEvent. Phase 4 notifications subscribe to this. */
+  /** Payload: RestartEvent. Notifications subscribe to this. */
   Restart: 'watchdog.restart',
+  /** Payload: the container name. A health check just reported "unhealthy". */
+  ContainerUnhealthy: 'watchdog.container-unhealthy',
+  /** Payload: UpdateRun. */
+  UpdateFinished: 'watchdog.update',
 } as const;

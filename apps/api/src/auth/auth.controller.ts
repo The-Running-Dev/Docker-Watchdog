@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, NotFoundException, Post, UnauthorizedException } from '@nestjs/common';
-import { loginRequestSchema, type LoginResponse } from '@subzerodev/watchdog-shared';
+import { loginRequestSchema, type AuthStatus, type LoginResponse } from '@subzerodev/watchdog-shared';
 import { parseBody } from '../common/parse-body.js';
 import { LogService } from '../logging/log.service.js';
 import { AuthService } from './auth.service.js';
@@ -15,7 +15,7 @@ export class AuthController {
   /** Lets the UI decide whether to show the login page. */
   @Public()
   @Get('status')
-  status(): { authEnabled: boolean; loginEnabled: boolean } {
+  status(): AuthStatus {
     return { authEnabled: this.auth.enabled, loginEnabled: this.auth.loginEnabled };
   }
 
