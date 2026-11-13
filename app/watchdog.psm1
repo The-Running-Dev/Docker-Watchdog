@@ -233,6 +233,7 @@ function Get-ProjectsWithUpdatedImages {
 
 function Set-APIConfig {
     $env:SendAPINotifications = $script:config.SendAPINotifications
+    $env:ProjectsDirectory = $script:config.ProjectsDirectory
     $env:DiscordWebhookUrl = $script:config.DiscordWebhookUrl
     $env:TimeZone = ([System.TimeZoneInfo]::Local).Id
 }
@@ -425,13 +426,20 @@ function Restart-Container {
     Write-Info "Restarting $name..."
 
     try {
-        $null = & docker restart $name -ErrorAction Stop
+        # Native commands don't throw on failure, so check the exit code explicitly
+        $output = & docker restart $name 2>&1
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "❌ Failed to Restart $($name): $(($output | Out-String).Trim())"
+
+            return
+        }
+
+        Write-Info "$name Restarted."
 
         if ($script:config.SendMonitorNotifications) {
             Send-DiscordNotificationForServiceRestart $name
         }
-        
-        Write-Info "$name Restarted."
     } catch {
         Write-Error "❌ Failed to Restart $($name): $($_.Exception.Message)"
     }
@@ -592,8 +600,9 @@ function Send-DiscordNotificationForServiceRestart {
 
     $timestamp = Get-TimeStamp
 
-    Send-DiscordNotification
+    Send-DiscordNotification `
         -title "✅ $serviceName Restarted! ✅" `
+        -description "Container '$serviceName' Was Unhealthy and Has Been Restarted." `
         -fields @(
             @{ name = "Service Name"; value = $serviceName; inline = $false }
             @{ name = "Time"; value = $timestamp; inline = $false }
@@ -631,14 +640,14 @@ function Restart-Project {
     }
 
     if ($unhealthyContainers.Count -eq 0) {
-        Write-Info "`t✅ All Services Healthy..."
-        
-        $result.Summary = " - ${project.Name}: ✅ All Services Healthy."
+        Write-Info "`t✅ $($project.Name) - Services Healthy..."
+
+        $result.Summary = " - $($project.Name): ✅ All Services Healthy."
     } else {
         Write-Warning "`t⚠️ Services Unhealthy..."
         
         $unhealthyList = $unhealthyContainers -join "`n  - "
-        $result.Summary = " - ${project.Name}: ⚠️ Services Unhealthy:`n  - $unhealthyList."
+        $result.Summary = " - $($project.Name): ⚠️ Services Unhealthy:`n  - $unhealthyList."
     }
 
     return [PSCustomObject]$result
