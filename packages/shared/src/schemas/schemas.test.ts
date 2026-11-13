@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WebhookEvent } from '../models/index.js';
+import { containerRestartOptionsSchema, projectRestartOptionsSchema } from './restart-options.schema.js';
 import { restartProjectRequestSchema } from './restart-project-request.schema.js';
 import { webhookRequestSchema } from './webhook-request.schema.js';
 
@@ -25,6 +26,41 @@ describe('webhookRequestSchema', () => {
       webhookRequestSchema.safeParse({ event: 'update-container', data: { projectOrContainerId: '  ' } }).success,
     ).toBe(false);
   });
+
+  it('rejects deleteVolumes without hardReset', () => {
+    expect(
+      webhookRequestSchema.safeParse({
+        event: 'update-project',
+        data: { projectOrContainerId: 'media', deleteVolumes: true },
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('projectRestartOptionsSchema', () => {
+  it('defaults to a pull and a plain restart', () => {
+    expect(projectRestartOptionsSchema.parse({})).toEqual({
+      pull: true,
+      hardReset: false,
+      deleteVolumes: false,
+      dryRun: false,
+    });
+  });
+
+  it('only allows deleteVolumes with hardReset', () => {
+    expect(projectRestartOptionsSchema.safeParse({ deleteVolumes: true }).success).toBe(false);
+    expect(projectRestartOptionsSchema.safeParse({ deleteVolumes: true, hardReset: true }).success).toBe(true);
+  });
+
+  it('rejects additional arguments that are not options', () => {
+    expect(projectRestartOptionsSchema.safeParse({ additionalArgs: ['--remove-orphans', 'rm'] }).success).toBe(false);
+  });
+});
+
+describe('containerRestartOptionsSchema', () => {
+  it('defaults to recreating without a pull', () => {
+    expect(containerRestartOptionsSchema.parse({})).toEqual({ mode: 'recreate', pull: false, dryRun: false });
+  });
 });
 
 describe('restartProjectRequestSchema', () => {
@@ -39,6 +75,15 @@ describe('restartProjectRequestSchema', () => {
 
   it('defaults additionalArgs to an empty list', () => {
     const parsed = restartProjectRequestSchema.parse({ event: 'update-project', data: { projectId: 'media' } });
+
+    expect(parsed.data.additionalArgs).toEqual([]);
+  });
+
+  it('treats null additionalArgs as none, like the Flask route', () => {
+    const parsed = restartProjectRequestSchema.parse({
+      event: 'update-project',
+      data: { projectId: 'media', additionalArgs: null },
+    });
 
     expect(parsed.data.additionalArgs).toEqual([]);
   });
