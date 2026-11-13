@@ -1,0 +1,8 @@
+{
+    "event": "update-container",
+    "data": {
+        "projectOrContainerId": "podcasts",
+        "hardReset": "false",
+        "isTest": true
+    }
+}
